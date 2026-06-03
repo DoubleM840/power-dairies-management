@@ -1,0 +1,68 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Milk Summary{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin_app:milk_overview' %}" class="btn btn-outline-secondary mb-4">
+    <i class="fas fa-arrow-left me-2"></i>Back to Overview
+</a>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p>Total Milk Collected</p>
+                    <h3>{{ total_milk|floatformat:1 }} L</h3>
+                </div>
+                <div class="icon blue"><i class="fas fa-tint"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p>Average Fat Content</p>
+                    <h3>{{ avg_fat|floatformat:2 }}%</h3>
+                </div>
+                <div class="icon green"><i class="fas fa-percent"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p>Today's Collection</p>
+                    <h3>{{ today_milk|floatformat:1 }} L</h3>
+                </div>
+                <div class="icon orange"><i class="fas fa-calendar-day"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-custom">
+    <div class="card-header">Per-Farmer Summary</div>
+    <div class="card-body p-0">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Farmer</th>
+                    <th>Total Milk (L)</th>
+                    <th>Avg Fat %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in farmer_summary %}
+                <tr>
+                    <td>{{ item.farmer__username }}</td>
+                    <td><strong>{{ item.total|floatformat:1 }}</strong></td>
+                    <td>{{ item.avg_fat|floatformat:2 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

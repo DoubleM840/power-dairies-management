@@ -1,0 +1,32 @@
+{% extends 'collector_app/base.html' %}
+{% block page_title %}My Farmers{% endblock %}
+
+{% block content %}
+<div class="card-custom">
+    <div class="card-header"><i class="fas fa-users me-2"></i>Farmers I Collect From</div>
+    <div class="card-body p-0">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Farmer</th>
+                    <th>Name</th>
+                    <th>Area</th>
+                    <th>Total Milk Collected (L)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in farmers_data %}
+                <tr>
+                    <td><strong>{{ data.farmer.username }}</strong></td>
+                    <td>{{ data.farmer.first_name }} {{ data.farmer.last_name }}</td>
+                    <td>{{ data.area }}</td>
+                    <td><strong>{{ data.total_milk|floatformat:1 }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No farmers assigned yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

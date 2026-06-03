@@ -1,0 +1,49 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Review Claim #{{ claim.id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card-custom mb-4">
+            <div class="card-header"><i class="fas fa-clipboard-list me-2"></i>Claim Details</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><strong>Farmer:</strong> {{ claim.farmer.username }}</div>
+                    <div class="col-md-6"><strong>Category:</strong> {{ claim.get_category_display }}</div>
+                    <div class="col-12"><strong>Subject:</strong> {{ claim.subject }}</div>
+                    <div class="col-12"><strong>Description:</strong><p class="mt-2 p-3 bg-light rounded">{{ claim.description }}</p></div>
+                    <div class="col-md-6"><strong>Date Filed:</strong> {{ claim.date_filed|date:"M d, Y H:i" }}</div>
+                    <div class="col-md-6"><strong>Status:</strong> 
+                        <span class="badge bg-warning text-dark">{{ claim.status }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-reply me-2"></i>Review & Respond</div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Update Status</label>
+                        <select name="status" class="form-select" required>
+                            <option value="Under Review" {% if claim.status == 'Under Review' %}selected{% endif %}>Under Review</option>
+                            <option value="Resolved" {% if claim.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                            <option value="Rejected" {% if claim.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Admin Response</label>
+                        <textarea name="admin_response" class="form-control" rows="4" required>{{ claim.admin_response }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white">
+                        <i class="fas fa-save me-2"></i>Submit Review
+                    </button>
+                    <a href="{% url 'admin_app:manage_claims' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

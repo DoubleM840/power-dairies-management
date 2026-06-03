@@ -1,0 +1,52 @@
+{% extends 'collector_app/base.html' %}
+{% block page_title %}Milk Records{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-0">My Collection Records</h5>
+        <small class="text-muted">Total: {{ total|floatformat:1 }} Liters</small>
+    </div>
+    <a href="{% url 'collector_app:collect_milk' %}" class="btn btn-primary-custom text-white">
+        <i class="fas fa-plus me-2"></i>Collect Milk
+    </a>
+</div>
+
+<div class="card-custom">
+    <div class="card-body p-0">
+        <table class="table table-custom table-hover">
+            <thead>
+                <tr>
+                    <th>Farmer</th>
+                    <th>Quantity (L)</th>
+                    <th>Fat %</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td><strong>{{ record.farmer.username }}</strong></td>
+                    <td>{{ record.quantity }}</td>
+                    <td>{{ record.fat_content }}%</td>
+                    <td>{{ record.date_collected }}</td>
+                    <td>
+                        <span class="badge badge-status
+                            {% if record.status == 'Approved' %}bg-success
+                            {% elif record.status == 'Pending' %}bg-warning text-dark
+                            {% else %}bg-danger{% endif %}">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                    <td>{{ record.notes|default:"-"|truncatewords:5 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No records found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

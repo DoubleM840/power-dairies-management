@@ -1,0 +1,104 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Milk Records{% endblock %}
+
+{% block content %}
+<!-- Line Graph -->
+<div class="card-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-chart-line me-2"></i>Milk Production Trend (30 Days)
+    </div>
+    <div class="card-body">
+        <canvas id="milkLineChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div class="card-custom">
+    <div class="card-header"><i class="fas fa-list me-2"></i>All Milk Records</div>
+    <div class="card-body p-0">
+        <table class="table table-custom table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Quantity (L)</th>
+                    <th>Fat %</th>
+                    <th>Collector</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.date_collected }}</td>
+                    <td><strong>{{ record.quantity }}</strong></td>
+                    <td>{{ record.fat_content }}%</td>
+                    <td>{{ record.collector.username|default:"-" }}</td>
+                    <td>
+                        <span class="badge badge-status
+                            {% if record.status == 'Approved' %}bg-success
+                            {% elif record.status == 'Pending' %}bg-warning text-dark
+                            {% else %}bg-danger{% endif %}">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                    <td>{{ record.notes|default:"-"|truncatewords:4 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No records yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ labels|json_script:"recordsLabels" }}
+{{ quantities|json_script:"recordsQuantities" }}
+{{ fat_contents|json_script:"recordsFats" }}
+<script>
+const labels = JSON.parse(document.getElementById('recordsLabels').textContent);
+const quantities = JSON.parse(document.getElementById('recordsQuantities').textContent);
+const fatContents = JSON.parse(document.getElementById('recordsFats').textContent);
+const ctx = document.getElementById('milkLineChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Quantity (L)',
+                data: quantities,
+                borderColor: '#8e44ad',
+                backgroundColor: 'rgba(142,68,173,0.05)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 3,
+                yAxisID: 'y',
+            },
+            {
+                label: 'Fat %',
+                data: fatContents,
+                borderColor: '#f39c12',
+                borderDash: [5, 5],
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 2,
+                yAxisID: 'y1',
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+            y: { type: 'linear', position: 'left', beginAtZero: true },
+            y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+</script>
+{% endblock %}

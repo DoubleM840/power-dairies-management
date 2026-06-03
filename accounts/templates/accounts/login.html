@@ -1,0 +1,263 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Power Dairies</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f5132 0%, #198754 50%, #20c997 100%);
+            min-height: 100vh;
+        }
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.25);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-left {
+            background: linear-gradient(135deg, rgba(15,81,50,0.95), rgba(25,135,84,0.95)), 
+                        url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800') center/cover;
+            padding: 60px 50px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-left h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        .login-left p {
+            font-size: 16px;
+            line-height: 1.7;
+            opacity: 0.95;
+            margin-bottom: 30px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+        }
+        .feature-list i {
+            margin-right: 12px;
+            color: #20c997;
+            font-size: 18px;
+        }
+        .login-right {
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-header {
+            margin-bottom: 35px;
+        }
+        .login-header h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f5132;
+            margin-bottom: 8px;
+        }
+        .login-header p {
+            color: #6c757d;
+            font-size: 15px;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: #198754;
+            box-shadow: 0 0 0 0.2rem rgba(25,135,84,0.15);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #0f5132, #198754);
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 10px;
+            width: 100%;
+            color: white;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(15,81,50,0.3);
+            color: white;
+        }
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+        }
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e9ecef;
+        }
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            color: #6c757d;
+            font-size: 13px;
+            position: relative;
+        }
+        .btn-register {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-register-farmer {
+            background: #f8f9fa;
+            color: #0f5132;
+            border: 2px solid #e9ecef;
+        }
+        .btn-register-farmer:hover {
+            background: #0f5132;
+            color: white;
+            border-color: #0f5132;
+        }
+        .btn-register-collector {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        .btn-register-collector:hover {
+            background: #856404;
+            color: white;
+            border-color: #856404;
+        }
+        .alert {
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+        @media (max-width: 900px) {
+            .login-container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+            .login-left {
+                display: none;
+            }
+            .login-right {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-left">
+                <h1>Power Dairies</h1>
+                <p>Sign in to your farm workspace. Manage your dairy operations efficiently.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i> Track milk production and deliveries</li>
+                    <li><i class="fas fa-check-circle"></i> Manage payments and receipts</li>
+                    <li><i class="fas fa-check-circle"></i> Monitor livestock health</li>
+                    <li><i class="fas fa-check-circle"></i> Order feeds and supplies</li>
+                </ul>
+            </div>
+            
+            <div class="login-right">
+                <div class="login-header">
+                    <h2>Login</h2>
+                    <p>Your role decides where you land after signing in.</p>
+                </div>
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="post" action="{% url 'accounts:login' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" placeholder="Enter your username" required autofocus>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-login">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
+                </form>
+                
+                <div class="divider">
+                    <span>New to Power Dairies?</span>
+                </div>
+                
+                <a href="{% url 'accounts:register_farmer' %}" class="btn-register btn-register-farmer">
+                    <i class="fas fa-tractor me-2"></i>Create Farmer or Manager Account
+                </a>
+                
+                <a href="{% url 'accounts:register_collector' %}" class="btn-register btn-register-collector">
+                    <i class="fas fa-truck me-2"></i>Create Collector Account
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

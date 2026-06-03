@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collector Dashboard - Dairy Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #27ae60;
+            --secondary: #2ecc71;
+            --accent: #f39c12;
+            --dark: #1a5276;
+            --light: #eafaf1;
+            --sidebar-width: 260px;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: all 0.3s;
+        }
+        .sidebar .brand {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .brand h4 { margin: 0; font-weight: 700; }
+        .sidebar .brand small { color: rgba(255,255,255,0.7); }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            border-radius: 0;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left: 4px solid var(--accent);
+        }
+        .sidebar .nav-link i { margin-right: 10px; width: 20px; text-align: center; }
+        .sidebar .nav-section {
+            padding: 15px 20px 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 1px;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 0;
+            min-height: 100vh;
+        }
+        .top-navbar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        .top-navbar .page-title { font-size: 20px; font-weight: 600; color: var(--dark); }
+        .content-area { padding: 30px; }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.3s;
+            border: none;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .stat-card .icon {
+            width: 50px; height: 50px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        .stat-card .icon.blue { background: rgba(39,174,96,0.1); color: var(--primary); }
+        .stat-card .icon.green { background: rgba(46,204,113,0.1); color: var(--secondary); }
+        .stat-card .icon.orange { background: rgba(243,156,18,0.1); color: var(--accent); }
+        .stat-card h3 { font-size: 28px; font-weight: 700; margin: 8px 0 4px; }
+        .stat-card p { color: #7f8c8d; margin: 0; font-size: 13px; }
+        .card-custom {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none;
+        }
+        .card-custom .card-header {
+            background: transparent; border-bottom: 1px solid #eee;
+            padding: 18px 24px; font-weight: 600;
+        }
+        .table-custom th {
+            background: #f8f9fa; font-weight: 600; font-size: 13px;
+            text-transform: uppercase; color: #7f8c8d; border: none;
+        }
+        .table-custom td { vertical-align: middle; font-size: 14px; }
+        .badge-status { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .btn-primary-custom {
+            background: var(--primary); border: none; border-radius: 8px; padding: 8px 20px;
+        }
+        .btn-primary-custom:hover { background: var(--dark); }
+        .notification-badge {
+            position: absolute; top: -5px; right: -5px;
+            background: #e74c3c; color: white; border-radius: 50%;
+            width: 20px; height: 20px; font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="brand">
+            <h4><i class="fas fa-truck"></i> Collector</h4>
+            <small>Milk Collection Portal</small>
+        </div>
+        <nav class="nav flex-column mt-3">
+            <div class="nav-section">Main</div>
+            <a href="{% url 'collector_app:collector_dashboard' %}" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <div class="nav-section">Collection</div>
+            <a href="{% url 'collector_app:collect_milk' %}" class="nav-link">
+                <i class="fas fa-tint"></i> Collect Milk
+            </a>
+            <a href="{% url 'collector_app:milk_records' %}" class="nav-link">
+                <i class="fas fa-list"></i> Milk Records
+            </a>
+            <div class="nav-section">Info</div>
+            <a href="{% url 'collector_app:view_payments' %}" class="nav-link">
+                <i class="fas fa-money-bill-wave"></i> Payments
+            </a>
+            <a href="{% url 'collector_app:view_farmers' %}" class="nav-link">
+                <i class="fas fa-users"></i> Farmers
+            </a>
+            <a href="{% url 'collector_app:view_notifications' %}" class="nav-link">
+                <i class="fas fa-bell"></i> Notifications
+            </a>
+            <div class="nav-section">Account</div>
+            <a href="{% url 'collector_app:view_profile' %}" class="nav-link">
+                <i class="fas fa-user"></i> Profile
+            </a>
+            <a href="{% url 'accounts:logout' %}" class="nav-link text-danger">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="top-navbar">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-link d-md-none me-2" onclick="document.getElementById('sidebar').classList.toggle('active')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="page-title">{% block page_title %}Dashboard{% endblock %}</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <a href="{% url 'collector_app:view_notifications' %}" class="position-relative me-3 text-dark">
+                    <i class="fas fa-bell" style="font-size: 20px;"></i>
+                    {% if unread_notifications %}
+                    <span class="notification-badge">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center"
+                         style="width: 36px; height: 36px; font-weight: bold; background: var(--primary);">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                    <span class="ms-2 d-none d-md-inline">{{ request.user.username }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

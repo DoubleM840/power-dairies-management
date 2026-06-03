@@ -1,0 +1,183 @@
+{% extends 'admin_app/base.html' %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'admin_app:manage_feeds' %}" class="text-decoration-none">Feeds</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Orders Summary</li>
+                </ol>
+            </nav>
+            <h1 class="h2 text-primary mb-0">
+                <i class="fas fa-shopping-cart me-2"></i>Feed Orders Summary
+            </h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print
+            </button>
+            <a href="{% url 'admin_app:manage_feeds' %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Feeds
+            </a>
+        </div>
+    </div>
+
+    <div class="row gx-3 gy-3 mb-4">
+        <div class="col-sm-6 col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="icon green">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-muted">Total Revenue</p>
+                        <h3 class="mb-0 text-success fw-bold">KES {{ total_revenue|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="icon orange">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-muted">Pending Orders</p>
+                        <h3 class="mb-0 text-warning fw-bold">{{ pending }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="icon blue">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-muted">Total Orders</p>
+                        <h3 class="mb-0 text-info fw-bold">{{ orders|length }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-custom">
+        <div class="card-header bg-white py-3 px-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-list text-primary"></i>
+                    <h5 class="mb-0 fw-bold text-primary">All Feed Orders</h5>
+                </div>
+                <span class="badge bg-primary rounded-pill py-2 px-3">{{ orders|length }} Orders</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Farmer</th>
+                        <th>Feed</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center">
+                                    {{ order.farmer.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ order.farmer.get_full_name|default:order.farmer.username }}</div>
+                                    <small class="text-muted">{{ order.farmer.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ order.feed.name }}</div>
+                            <small class="text-muted">{{ order.feed.unit }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ order.quantity }} {{ order.feed.unit }}</span>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-success">KES {{ order.total_price|floatformat:2 }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-medium">{{ order.order_date|date:"M d, Y" }}</div>
+                            <small class="text-muted">{{ order.order_date|timesince }} ago</small>
+                        </td>
+                        <td>
+                            {% if order.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark badge-status"><i class="fas fa-clock me-1"></i>Pending</span>
+                            {% elif order.status == 'Confirmed' %}
+                                <span class="badge bg-info text-white badge-status"><i class="fas fa-check-circle me-1"></i>Confirmed</span>
+                            {% elif order.status == 'Processing' %}
+                                <span class="badge bg-primary text-white badge-status"><i class="fas fa-cog fa-spin me-1"></i>Processing</span>
+                            {% elif order.status == 'Delivered' %}
+                                <span class="badge bg-success text-white badge-status"><i class="fas fa-check-double me-1"></i>Delivered</span>
+                            {% elif order.status == 'Cancelled' %}
+                                <span class="badge bg-danger text-white badge-status"><i class="fas fa-times-circle me-1"></i>Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-secondary badge-status">{{ order.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary" title="View Details"><i class="fas fa-eye"></i></button>
+                                <button type="button" class="btn btn-outline-success" title="Approve"><i class="fas fa-check"></i></button>
+                                <button type="button" class="btn btn-outline-danger" title="Reject"><i class="fas fa-times"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                <p class="mb-0">No feed orders found</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+}
+.badge-status {
+    min-width: 8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.card-custom {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+}
+.table td, .table th {
+    white-space: nowrap;
+}
+@media (max-width: 767px) {
+    .badge-status { min-width: auto; }
+}
+</style>
+{% endblock %}

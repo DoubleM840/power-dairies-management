@@ -1,0 +1,117 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Farmer Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div><p>Total Milk Produced</p><h3>{{ total_milk|floatformat:1 }} L</h3></div>
+                <div class="icon purple"><i class="fas fa-tint"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div><p>This Month</p><h3>{{ this_month|floatformat:1 }} L</h3></div>
+                <div class="icon green"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div><p>My Cows</p><h3>{{ cows_count }}</h3></div>
+                <div class="icon orange"><i class="fas fa-horse"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card-custom">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-2"></i>Milk Production (Last 7 Days)
+            </div>
+            <div class="card-body">
+                <canvas id="milkChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-info-circle me-2"></i>Quick Info</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span><i class="fas fa-truck text-primary me-2"></i> Pending Orders</span>
+                    <strong>{{ pending_orders }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                    <span><i class="fas fa-money-bill text-success me-2"></i> Pending Payments</span>
+                    <strong>{{ pending_payments }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-3">
+                    <span><i class="fas fa-bell text-warning me-2"></i> Unread Notifications</span>
+                    <strong>{{ unread_notifications }}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-custom mt-4">
+            <div class="card-header"><i class="fas fa-bolt me-2"></i>Quick Links</div>
+            <div class="card-body">
+                <a href="{% url 'farmer_app:view_feeds' %}" class="btn btn-primary-custom text-white w-100 mb-2">
+                    <i class="fas fa-box me-2"></i>Browse Feeds
+                </a>
+                <a href="{% url 'farmer_app:file_claim' %}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-clipboard-list me-2"></i>File a Claim
+                </a>
+                <a href="{% url 'farmer_app:my_reports' %}" class="btn btn-outline-success w-100">
+                    <i class="fas fa-download me-2"></i>Download Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ labels|json_script:"farmerLabels" }}
+{{ quantities|json_script:"farmerQuantities" }}
+<script>
+const labels = JSON.parse(document.getElementById('farmerLabels').textContent);
+const quantities = JSON.parse(document.getElementById('farmerQuantities').textContent);
+const ctx = document.getElementById('milkChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Milk (Liters)',
+            data: quantities,
+            borderColor: '#8e44ad',
+            backgroundColor: 'rgba(142,68,173,0.1)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointBackgroundColor: '#9b59b6',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+</script>
+{% endblock %}

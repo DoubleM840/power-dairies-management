@@ -1,0 +1,59 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Add Feed{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-plus me-2"></i>Add New Feed</div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Feed Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Price (KES)</label>
+                            <input type="number" name="price" class="form-control" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unit</label>
+                            <select name="unit" class="form-select">
+                                <option value="kg">Kilograms (kg)</option>
+                                <option value="bale">Bale</option>
+                                <option value="bag">Bag</option>
+                                <option value="liter">Liter</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" name="stock_quantity" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Low Stock Threshold</label>
+                            <input type="number" name="low_stock_threshold" class="form-control" value="50">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Feed Image (Optional)</label>
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <small class="text-muted">Recommended size: 400x300px</small>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary-custom text-white">
+                            <i class="fas fa-save me-2"></i>Add Feed
+                        </button>
+                        <a href="{% url 'admin_app:manage_feeds' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

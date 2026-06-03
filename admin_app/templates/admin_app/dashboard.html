@@ -1,0 +1,301 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item active">Dashboard</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard Overview</h1>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'admin_app:notifications' %}" class="btn btn-outline-custom position-relative">
+            <i class="fas fa-bell"></i>
+            {% if notifications %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ notifications|length }}
+            </span>
+            {% endif %}
+        </a>
+        <button class="btn-primary-custom" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report
+        </button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'admin_app:manage_users' %}" style="text-decoration: none;">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Total Farmers</p>
+                        <h3 class="mb-0">{{ total_users }}</h3>
+                    </div>
+                    <div class="icon blue"><i class="fas fa-users fa-2x"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'admin_app:milk_overview' %}" style="text-decoration: none;">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Today's Milk (L)</p>
+                        <h3 class="mb-0">{{ today_milk|floatformat:1 }}</h3>
+                    </div>
+                    <div class="icon green"><i class="fas fa-tint fa-2x"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'admin_app:manage_payments' %}" style="text-decoration: none;">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Pending Payments</p>
+                        <h3 class="mb-0">{{ pending_payments }}</h3>
+                    </div>
+                    <div class="icon orange"><i class="fas fa-money-bill-wave fa-2x"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'admin_app:manage_claims' %}" style="text-decoration: none;">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Pending Claims</p>
+                        <h3 class="mb-0">{{ pending_claims }}</h3>
+                    </div>
+                    <div class="icon red"><i class="fas fa-clipboard-list fa-2x"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Recent Notifications Section -->
+{% if notifications %}
+<div class="card-custom mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white">
+        <div>
+            <i class="fas fa-bell text-warning me-2"></i>Recent Notifications
+            <span class="badge bg-primary rounded-pill ms-2">{{ notifications|length }} New</span>
+        </div>
+        <a href="{% url 'admin_app:notifications' %}" class="btn btn-sm btn-link text-primary">
+            View All <i class="fas fa-arrow-right ms-1"></i>
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for notification in notifications|slice:":5" %}
+            <div class="list-group-item list-group-item-action p-3 border-bottom {% if forloop.first %}bg-light{% endif %}">
+                <div class="d-flex align-items-start">
+                    <div class="notification-icon me-3 mt-1">
+                        {% if notification.type == 'claim' %}
+                            <i class="fas fa-clipboard-list text-danger"></i>
+                        {% elif notification.type == 'farmer' %}
+                            <i class="fas fa-user-plus text-success"></i>
+                        {% elif notification.type == 'stock' %}
+                            <i class="fas fa-box-open text-warning"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle text-info"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 fw-semibold">{{ notification.message }}</h6>
+                            <small class="text-muted">
+                                <i class="far fa-clock me-1"></i>{{ notification.time|timesince }} ago
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Charts and Quick Stats Row -->
+<div class="row g-4 mb-4">
+    <!-- Chart Section -->
+    <div class="col-lg-8">
+        <div class="card-custom h-100">
+            <div class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-chart-line me-2"></i>Milk Collection Trend
+                </h5>
+                <small class="text-muted">Last 7 Days</small>
+            </div>
+            <div class="card-body p-4" style="height: 350px;">
+                <canvas id="milkChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="col-lg-4">
+        <div class="card-custom h-100">
+            <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-info-circle me-2"></i>Quick Stats
+                </h5>
+            </div>
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                
+                <!-- Stat Item 1: Collectors -->
+                <div class="d-flex align-items-center p-3 mb-3 rounded-3 bg-light-subtle border border-light">
+                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
+                        <i class="fas fa-user-shield fa-lg"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-0 small fw-semibold">Total Collectors</p>
+                        <h4 class="mb-0 fw-bold text-dark">{{ total_collectors }}</h4>
+                    </div>
+                </div>
+
+                <!-- Stat Item 2: Monthly Milk -->
+                <div class="d-flex align-items-center p-3 mb-3 rounded-3 bg-light-subtle border border-light">
+                    <div class="icon-box bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
+                        <i class="fas fa-tint fa-lg"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-0 small fw-semibold">Monthly Milk (L)</p>
+                        <h4 class="mb-0 fw-bold text-dark">{{ monthly_milk|floatformat:1 }}</h4>
+                    </div>
+                </div>
+
+                <!-- Stat Item 3: Low Stock -->
+                <div class="d-flex align-items-center p-3 rounded-3 bg-light-subtle border border-light">
+                    <div class="icon-box bg-warning bg-opacity-10 text-warning rounded-3 p-3 me-3">
+                        <i class="fas fa-exclamation-triangle fa-lg"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-0 small fw-semibold">Low Stock Items</p>
+                        <h4 class="mb-0 fw-bold text-dark">{{ low_stock_feeds|length }}</h4>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ labels|json_script:"milkLabels" }}
+{{ quantities|json_script:"milkQuantities" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const labels = JSON.parse(document.getElementById('milkLabels').textContent);
+    const quantities = JSON.parse(document.getElementById('milkQuantities').textContent);
+    const ctx = document.getElementById('milkChart').getContext('2d');
+
+    // Create a nice gradient for the area under the line
+    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(30, 58, 138, 0.2)'); // Top color (Primary Blue)
+    gradient.addColorStop(1, 'rgba(30, 58, 138, 0)');   // Bottom color (Transparent)
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Milk Collected (Liters)',
+                data: quantities,
+                borderColor: '#1e3a8a', // Solid Blue Line
+                backgroundColor: gradient, // Gradient Fill
+                borderWidth: 3,
+                pointBackgroundColor: '#ffffff', // White center for points
+                pointBorderColor: '#1e3a8a',     // Blue border for points
+                pointBorderWidth: 2,
+                pointRadius: 6,                  // Larger points
+                pointHoverRadius: 8,             // Even larger on hover
+                fill: true,
+                tension: 0.4                     // 0.4 makes the line smooth/curved
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }, // Hide legend for cleaner look
+                tooltip: {
+                    backgroundColor: 'rgba(30, 58, 138, 0.9)',
+                    titleFont: { size: 13, family: "'Segoe UI', sans-serif" },
+                    bodyFont: { size: 14, weight: 'bold', family: "'Segoe UI', sans-serif" },
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y + ' Liters';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { 
+                        color: 'rgba(0,0,0,0.05)', // Very light grid lines
+                        drawBorder: false 
+                    },
+                    ticks: { 
+                        font: { size: 11 }, 
+                        color: '#6b7280',
+                        stepSize: 2 // Makes Y-axis numbers cleaner (0, 2, 4, 6...)
+                    }
+                },
+                x: {
+                    grid: { display: false, drawBorder: false }, // Hide vertical grid lines
+                    ticks: { 
+                        font: { size: 11 }, 
+                        color: '#6b7280',
+                        maxRotation: 0,  // Keeps labels horizontal
+                        autoSkip: true,  // Hides labels if they are too crowded
+                        maxTicksLimit: 7 // Forces it to show roughly 7 labels
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+    /* Custom styling for Quick Stats Icons */
+    .icon-box {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    /* Ensure the stat rows have a subtle hover effect */
+    .bg-light-subtle {
+        transition: all 0.2s ease;
+    }
+    .bg-light-subtle:hover {
+        background-color: #f8f9fa !important;
+        transform: translateX(5px); /* Slight slide to the right on hover */
+    }
+</style>
+{% endblock %}

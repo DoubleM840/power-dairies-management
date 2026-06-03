@@ -1,0 +1,33 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Add Rate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-plus me-2"></i>Add New Rate</div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Fat Rate (KES per Liter)</label>
+                        <input type="number" name="fat_rate" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Commission Rate (%)</label>
+                        <input type="number" name="commission_rate" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Effective Date</label>
+                        <input type="date" name="effective_date" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white">
+                        <i class="fas fa-save me-2"></i>Save Rate
+                    </button>
+                    <a href="{% url 'admin_app:manage_rates' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

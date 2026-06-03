@@ -1,0 +1,49 @@
+{% extends 'collector_app/base.html' %}
+{% block page_title %}Collect Milk{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card-custom">
+            <div class="card-header">
+                <i class="fas fa-tint me-2"></i>Record Milk Collection
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Select Farmer</label>
+                        <select name="farmer" class="form-select" required>
+                            <option value="">Choose Farmer</option>
+                            {% for alloc in assigned_farmers %}
+                            <option value="{{ alloc.farmer.id }}">{{ alloc.farmer.username }} - {{ alloc.farmer.first_name }} {{ alloc.farmer.last_name }} ({{ alloc.area }})</option>
+                            {% endfor %}
+                        </select>
+                        {% if not assigned_farmers %}
+                        <small class="text-danger">No farmers assigned to you yet.</small>
+                        {% endif %}
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Quantity (Liters)</label>
+                            <input type="number" name="quantity" class="form-control" step="0.01" min="0.1" required>
+                        </div>
+                        
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Date Collected</label>
+                        <input type="date" name="date_collected" class="form-control" value="{% now 'Y-m-d' %}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white">
+                        <i class="fas fa-save me-2"></i>Record Collection
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

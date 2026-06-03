@@ -1,0 +1,173 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Notifications</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-bell text-primary me-2"></i>Notifications</h1>
+    </div>
+    <div>
+        <button class="btn btn-outline-custom" onclick="markAllAsRead()">
+            <i class="fas fa-check-double"></i> Mark All Read
+        </button>
+    </div>
+</div>
+
+<!-- Notifications Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Total Notifications</p>
+                    <h3 class="mb-0">{{ notifications|length }}</h3>
+                </div>
+                <div class="icon blue"><i class="fas fa-bell fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Unread</p>
+                    <h3 class="mb-0 text-warning">{{ notifications|length }}</h3>
+                </div>
+                <div class="icon orange"><i class="fas fa-envelope fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Today</p>
+                    <h3 class="mb-0 text-success">{{ today_notifications }}</h3>
+                </div>
+                <div class="icon green"><i class="fas fa-calendar-day fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications List -->
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2 text-primary"></i>All Notifications</h5>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-outline-primary active">All</button>
+            <button class="btn btn-sm btn-outline-primary">Unread</button>
+            <button class="btn btn-sm btn-outline-primary">Read</button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for notification in notifications %}
+            <div class="list-group-item list-group-item-action border-bottom p-3 {% if forloop.counter <= 3 %}bg-light{% endif %}">
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                    <div class="d-flex align-items-start flex-grow-1">
+                        <!-- Icon based on type -->
+                        <div class="notification-icon me-3 mt-1">
+                            {% if 'claim' in notification.message|lower %}
+                                <i class="fas fa-clipboard-list text-danger"></i>
+                            {% elif 'farmer' in notification.message|lower or 'joined' in notification.message|lower %}
+                                <i class="fas fa-user-plus text-success"></i>
+                            {% elif 'payment' in notification.message|lower %}
+                                <i class="fas fa-money-bill-wave text-primary"></i>
+                            {% elif 'stock' in notification.message|lower or 'milk' in notification.message|lower %}
+                                <i class="fas fa-box-open text-warning"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle text-info"></i>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0 fw-semibold">{{ notification.title }}</h6>
+                                <small class="text-muted">
+                                    <i class="far fa-clock me-1"></i>{{ notification.created_at|timesince }} ago
+                                </small>
+                            </div>
+                            <p class="mb-2 text-muted">{{ notification.message }}</p>
+                            <div class="d-flex gap-2">
+                                <small class="badge bg-light text-dark border">
+                                    <i class="fas fa-calendar me-1"></i>{{ notification.created_at|date:"M d, Y" }}
+                                </small>
+                                <small class="badge bg-light text-dark border">
+                                    <i class="far fa-clock me-1"></i>{{ notification.created_at|date:"H:i" }}
+                                </small>
+                                {% if notification.is_read %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Read
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-circle me-1"></i>Unread
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="ms-3">
+                        <button class="btn btn-sm btn-link text-primary" title="Mark as read">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-sm btn-link text-danger" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash text-muted" style="font-size: 4rem;"></i>
+                <h5 class="text-muted mt-3">No Notifications</h5>
+                <p class="text-muted">You're all caught up!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.list-group-item {
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background: #f8f9fa !important;
+    transform: translateX(4px);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markAllAsRead() {
+    // Add AJAX call here to mark all as read
+    alert('All notifications marked as read');
+}
+</script>
+{% endblock %}

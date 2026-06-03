@@ -1,0 +1,91 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Feed Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0">Manage Feeds & Supplements</h5>
+    <div>
+        <a href="{% url 'admin_app:feed_orders_summary' %}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-list me-2"></i>Order Summary
+        </a>
+        <a href="{% url 'admin_app:add_feed' %}" class="btn btn-primary-custom text-white">
+            <i class="fas fa-plus me-2"></i>Add Feed
+        </a>
+    </div>
+</div>
+
+<!-- Low Stock Alert -->
+{% for feed in feeds %}
+    {% if feed.is_low_stock %}
+    <div class="alert-low-stock">
+        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+        <strong>{{ feed.name }}</strong> is low on stock! Only {{ feed.stock_quantity }} {{ feed.unit }} remaining.
+    </div>
+    {% endif %}
+{% endfor %}
+
+<div class="card-custom">
+    <div class="card-body p-0">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Threshold</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feed in feeds %}
+                <tr>
+                    <td>
+                        {% if feed.image %}
+                        <img src="{{ feed.image.url }}" alt="{{ feed.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                        {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 8px;">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ feed.name }}</strong><br>
+                        <small class="text-muted">{{ feed.description|truncatewords:10 }}</small>
+                    </td>
+                    <td>KES {{ feed.price }}/{{ feed.unit }}</td>
+                    <td>
+                        {% if feed.is_low_stock %}
+                        <span class="text-danger fw-bold">{{ feed.stock_quantity }} {{ feed.unit }}</span>
+                        {% else %}
+                        {{ feed.stock_quantity }} {{ feed.unit }}
+                        {% endif %}
+                    </td>
+                    <td>{{ feed.low_stock_threshold }} {{ feed.unit }}</td>
+                    <td>
+                        {% if feed.is_low_stock %}
+                        <span class="badge bg-danger badge-status">Low Stock</span>
+                        {% else %}
+                        <span class="badge bg-success badge-status">In Stock</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'admin_app:edit_feed' feed.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form method="post" action="{% url 'admin_app:delete_feed' feed.id %}" class="d-inline"
+                              onsubmit="return confirm('Delete this feed?')">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No feeds added yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

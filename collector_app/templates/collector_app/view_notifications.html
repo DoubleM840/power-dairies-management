@@ -1,0 +1,26 @@
+{% extends 'collector_app/base.html' %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="card-custom">
+    <div class="card-header"><i class="fas fa-bell me-2"></i>All Notifications</div>
+    <div class="card-body">
+        {% for notification in notifications %}
+           <div class="d-flex align-items-start p-3 mb-2 rounded {% if not notification.is_read %}bg-light{% endif %}"
+               {% if not notification.is_read %}style="border-left: 3px solid var(--primary);" {% else %}style="border-left: 3px solid #ddd;"{% endif %}>
+            <div class="me-3">
+                     <i class="fas fa-envelope{% if notification.is_read %}-open{% endif %}"
+                         {% if not notification.is_read %}style="font-size: 20px; color: var(--primary);" {% else %}style="font-size: 20px; color: #bbb;"{% endif %}></i>
+            </div>
+            <div>
+                <strong>{{ notification.title }}</strong>
+                <p class="mb-0 text-muted small">{{ notification.message }}</p>
+                <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center text-muted py-4">No notifications</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

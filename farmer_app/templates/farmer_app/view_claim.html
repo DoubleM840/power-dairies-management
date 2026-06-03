@@ -1,0 +1,52 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Claim #{{ claim.id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card-custom mb-4">
+            <div class="card-header">
+                <span class="badge 
+                    {% if claim.status == 'Resolved' %}bg-success
+                    {% elif claim.status == 'Pending' %}bg-warning text-dark
+                    {% elif claim.status == 'Under Review' %}bg-info
+                    {% else %}bg-danger{% endif %} me-2">
+                    {{ claim.status }}
+                </span>
+                Claim #{{ claim.id }}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Subject:</strong> {{ claim.subject }}
+                </div>
+                <div class="mb-3">
+                    <strong>Category:</strong> 
+                    {% if claim.category == 'payment' %}Payment Issue
+                    {% elif claim.category == 'collector' %}Collector Complaint
+                    {% elif claim.category == 'system' %}System Bug
+                    {% else %}Other{% endif %}
+                </div>
+                <div class="mb-3">
+                    <strong>Date Filed:</strong> {{ claim.date_filed|date:"M d, Y H:i" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <div class="p-3 bg-light rounded mt-1">{{ claim.description }}</div>
+                </div>
+                {% if claim.admin_response %}
+                <div class="p-3 border rounded border-success">
+                    <strong class="text-success"><i class="fas fa-reply me-2"></i>Admin Response:</strong>
+                    <p class="mb-0 mt-2">{{ claim.admin_response }}</p>
+                    {% if claim.date_resolved %}
+                    <small class="text-muted">Resolved on {{ claim.date_resolved|date:"M d, Y H:i" }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'farmer_app:my_claims' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Claims
+        </a>
+    </div>
+</div>
+{% endblock %}

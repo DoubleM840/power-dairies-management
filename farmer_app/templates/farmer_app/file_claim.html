@@ -1,0 +1,45 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}File a Claim{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card-custom">
+            <div class="card-header">
+                <i class="fas fa-clipboard-list me-2"></i>File a New Claim
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Use this form to report payment system bugs, collector complaints, or any other issues.
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select" required>
+                            <option value="">Select Category</option>
+                            <option value="payment">Payment Issue</option>
+                            <option value="collector">Collector Complaint</option>
+                            <option value="system">System Bug</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <input type="text" name="subject" class="form-control" required placeholder="Brief summary of your issue">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="5" required placeholder="Describe your issue in detail..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Claim
+                    </button>
+                    <a href="{% url 'farmer_app:my_claims' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

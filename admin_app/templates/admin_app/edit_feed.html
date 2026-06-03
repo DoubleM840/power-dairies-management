@@ -1,0 +1,49 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Edit Feed{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-edit me-2"></i>Edit: {{ feed.name }}</div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Feed Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ feed.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3">{{ feed.description }}</textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Price (KES)</label>
+                            <input type="number" name="price" class="form-control" value="{{ feed.price }}" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unit</label>
+                            <input type="text" name="unit" class="form-control" value="{{ feed.unit }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" name="stock_quantity" class="form-control" value="{{ feed.stock_quantity }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Low Stock Threshold</label>
+                            <input type="number" name="low_stock_threshold" class="form-control" value="{{ feed.low_stock_threshold }}">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary-custom text-white">
+                            <i class="fas fa-save me-2"></i>Update Feed
+                        </button>
+                        <a href="{% url 'admin_app:manage_feeds' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

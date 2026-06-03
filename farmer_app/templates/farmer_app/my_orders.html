@@ -1,0 +1,62 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}My Orders{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0">My Feed Orders</h5>
+    <a href="{% url 'farmer_app:view_feeds' %}" class="btn btn-primary-custom text-white">
+        <i class="fas fa-plus me-2"></i>Order More Feeds
+    </a>
+</div>
+
+<div class="card-custom">
+    <div class="card-body p-0">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Feed</th>
+                    <th>Quantity</th>
+                    <th>Total Price</th>
+                    <th>Order Date</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><strong>{{ order.feed.name }}</strong></td>
+                    <td>{{ order.quantity }} {{ order.feed.unit }}</td>
+                    <td>KES {{ order.total_price }}</td>
+                    <td>{{ order.order_date|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-status
+                            {% if order.status == 'Delivered' %}bg-success
+                            {% elif order.status == 'Pending' %}bg-warning text-dark
+                            {% elif order.status == 'Cancelled' %}bg-danger
+                            {% else %}bg-info{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'farmer_app:view_payments' %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                            <select name="method" class="form-select form-select-sm d-inline" style="width: 130px;">
+                                <option value="M-Pesa">M-Pesa</option>
+                                <option value="Milk Deduction">Milk Deduction</option>
+                            </select>
+                            <button class="btn btn-sm btn-success" type="submit">
+                                <i class="fas fa-pay"></i> Pay
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No orders yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

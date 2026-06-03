@@ -1,0 +1,59 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}My Payments{% endblock %}
+
+{% block content %}
+<div class="card-custom">
+    <div class="card-header"><i class="fas fa-money-bill-wave me-2"></i>Payment History</div>
+    <div class="card-body p-0">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Receipt #</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.receipt_number|default:"-" }}</td>
+                    <td><strong>KES {{ payment.amount }}</strong></td>
+                    <td>{{ payment.get_payment_type_display }}</td>
+                    <td>
+                        {% if payment.method == 'M-Pesa' %}
+                        <span class="badge bg-success">M-Pesa</span>
+                        {% elif payment.method == 'Milk Deduction' %}
+                        <span class="badge bg-info">Milk Deduction</span>
+                        {% else %}
+                        {{ payment.method|default:"-" }}
+                        {% endif %}
+                    </td>
+                    <td>{{ payment.description|truncatewords:5|default:"-" }}</td>
+                    <td>{{ payment.date_created|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-status
+                            {% if payment.status == 'Approved' or payment.status == 'Completed' %}bg-success
+                            {% elif payment.status == 'Pending' %}bg-warning text-dark
+                            {% else %}bg-danger{% endif %}">
+                            {{ payment.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'farmer_app:download_receipt' payment.id %}" class="btn btn-sm btn-outline-primary" title="Download Receipt">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No payments yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

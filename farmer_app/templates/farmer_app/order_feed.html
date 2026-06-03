@@ -1,0 +1,28 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Order {{ feed.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-box me-2"></i>Order: {{ feed.name }}</div>
+            <div class="card-body p-4">
+                <div class="mb-4 p-3 bg-light rounded">
+                    <p class="mb-1"><strong>Price:</strong> KES {{ feed.price }}/{{ feed.unit }}</p>
+                    <p class="mb-0"><strong>Available:</strong> {{ feed.stock_quantity }} {{ feed.unit }}</p>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Quantity ({{ feed.unit }})</label>
+                        <input type="number" name="quantity" class="form-control" min="1" max="{{ feed.stock_quantity }}" value="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white w-100">
+                        <i class="fas fa-check me-2"></i>Place Order
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-receipt me-2"></i>Order Summary</div>
+            <div class="card-body p-4">
+                {% for item in cart.items.all %}
+                <div class="d-flex justify-content-between py-2 border-bottom">
+                    <span>{{ item.feed.name }} x{{ item.quantity }}</span>
+                    <strong>KES {{ item.total_price }}</strong>
+                </div>
+                {% endfor %}
+                <div class="d-flex justify-content-between py-3 fw-bold fs-5">
+                    <span>Total:</span>
+                    <span>KES {{ cart.total_price }}</span>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary-custom text-white w-100 btn-lg mt-3">
+                        <i class="fas fa-check me-2"></i>Confirm Order
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

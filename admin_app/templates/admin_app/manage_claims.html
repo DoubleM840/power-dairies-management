@@ -1,0 +1,451 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Manage Claims{% endblock %}
+
+{% block content %}
+<!-- Custom Styles -->
+<style>
+    /* Page Header */
+    .claims-header {
+        background: white;
+        border-radius: 12px;
+        padding: 24px 30px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .breadcrumb {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+    .breadcrumb a {
+        color: #64748b;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .breadcrumb a:hover {
+        color: #2563eb;
+    }
+    .claims-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+    }
+    .claims-title i {
+        color: #2563eb;
+        font-size: 2rem;
+    }
+    
+    /* Filter Section */
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .filter-label {
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+    .filter-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 0.95rem;
+        color: #475569;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .filter-select:hover {
+        border-color: #cbd5e1;
+    }
+    .filter-select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .btn-apply {
+        background: #1e40af;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 32px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-apply:hover {
+        background: #1e3a8a;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+    }
+    
+    /* Claims List Card */
+    .claims-list-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+    .claims-list-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .claims-list-header h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.1rem;
+    }
+    .badge-count {
+        background: #2563eb;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    /* Table Styles */
+    .claims-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .claims-table th {
+        background: #f8fafc;
+        padding: 14px 24px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .claims-table td {
+        padding: 20px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    .claims-table tbody tr {
+        transition: background-color 0.2s;
+    }
+    .claims-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    .claims-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Farmer Info */
+    .farmer-name {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+    .farmer-email {
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+    
+    /* Category Badge */
+    .category-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #475569;
+    }
+    .category-badge i {
+        font-size: 0.75rem;
+    }
+    
+    /* Subject & Description */
+    .claim-subject {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+        margin-bottom: 0;
+    }
+    .claim-description {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin: 0;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Date */
+    .claim-date {
+        font-weight: 500;
+        color: #1e293b;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+    .claim-time {
+        color: #94a3b8;
+        font-size: 0.8rem;
+    }
+    
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .status-badge i {
+        font-size: 0.75rem;
+    }
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .status-under-review {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    .status-resolved {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .status-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    .btn-action-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+    .btn-action-icon.view {
+        color: #2563eb;
+    }
+    .btn-action-icon.view:hover {
+        background: rgba(37, 99, 235, 0.1);
+    }
+    .btn-action-icon.edit {
+        color: #059669;
+    }
+    .btn-action-icon.edit:hover {
+        background: rgba(5, 150, 105, 0.1);
+    }
+    .btn-action-icon.delete {
+        color: #dc2626;
+    }
+    .btn-action-icon.delete:hover {
+        background: rgba(220, 38, 38, 0.1);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 16px;
+    }
+    .empty-state h5 {
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    .empty-state p {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+    
+    /* Print Button */
+    .btn-print {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 500;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-print:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="claims-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a> / Claims
+        </div>
+        <h1 class="claims-title">
+            <i class="fas fa-clipboard-list"></i>
+            Manage Claims
+        </h1>
+    </div>
+    <button class="btn-print" onclick="window.print()">
+        <i class="fas fa-print"></i> Print
+    </button>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-card">
+    <form method="get" class="d-flex align-items-center gap-3">
+        <label class="filter-label mb-0">Filter by Status:</label>
+        <select name="status" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Status</option>
+            <option value="Pending" {% if request.GET.status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Under Review" {% if request.GET.status == 'Under Review' %}selected{% endif %}>Under Review</option>
+            <option value="Resolved" {% if request.GET.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+            <option value="Rejected" {% if request.GET.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+        <button type="submit" class="btn-apply">
+            <i class="fas fa-filter"></i> Apply
+        </button>
+    </form>
+</div>
+
+<!-- Claims List -->
+<div class="claims-list-card">
+    <div class="claims-list-header">
+        <i class="fas fa-list text-primary"></i>
+        <h5>All Claims</h5>
+        <span class="badge-count">{{ claims.count }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="claims-table">
+            <thead>
+                <tr>
+                    <th>Farmer</th>
+                    <th>Category</th>
+                    <th>Subject</th>
+                    <th>Description</th>
+                    <th>Date Filed</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for claim in claims %}
+                <tr>
+                    <td>
+                        <div class="farmer-name">{{ claim.farmer.get_full_name|default:claim.farmer.username }}</div>
+                        <div class="farmer-email">{{ claim.farmer.email }}</div>
+                    </td>
+                    <td>
+                        <span class="category-badge">
+                            <i class="fas fa-tag"></i>
+                            {{ claim.get_category_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="claim-subject">{{ claim.subject }}</div>
+                    </td>
+                    <td>
+                        <div class="claim-description" title="{{ claim.description }}">
+                            {{ claim.description|truncatechars:60 }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="claim-date">{{ claim.date_filed|date:"M d, Y" }}</div>
+                        <div class="claim-time">{{ claim.date_filed|timesince }} ago</div>
+                    </td>
+                    <td>
+                        <span class="status-badge 
+                            {% if claim.status == 'Pending' %}status-pending
+                            {% elif claim.status == 'Under Review' %}status-under-review
+                            {% elif claim.status == 'Resolved' %}status-resolved
+                            {% else %}status-rejected{% endif %}">
+                            <i class="fas fa-clock"></i>
+                            {{ claim.status }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <div class="action-buttons justify-content-end">
+                            <a href="{% url 'admin_app:review_claim' claim.id %}" class="btn-action-icon view" title="Review Claim">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'admin_app:approve_claim' claim.id %}" 
+                               class="btn-action-icon edit" 
+                               title="Approve Claim"
+                               onclick="return confirm('Approve this claim?')">
+                                <i class="fas fa-check"></i>
+                            </a>
+                            <a href="{% url 'admin_app:reject_claim' claim.id %}" 
+                               class="btn-action-icon delete" 
+                               title="Reject Claim"
+                               onclick="return confirm('Reject this claim?')">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <h5>No claims found</h5>
+                            <p>All claims have been resolved or no claims exist yet.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

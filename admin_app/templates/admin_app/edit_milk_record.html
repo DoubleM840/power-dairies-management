@@ -1,0 +1,47 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Edit Milk Record{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card-custom">
+            <div class="card-header">
+                <i class="fas fa-edit me-2"></i>Edit Milk Record
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Farmer</label>
+                        <input type="text" class="form-control" value="{{ record.farmer.username }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity (Liters)</label>
+                        <input type="number" name="quantity" class="form-control" value="{{ record.quantity }}" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fat Content (%)</label>
+                        <input type="number" name="fat_content" class="form-control" value="{{ record.fat_content }}" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select" required>
+                            <option value="Pending" {% if record.status == 'Pending' %}selected{% endif %}>Pending</option>
+                            <option value="Approved" {% if record.status == 'Approved' %}selected{% endif %}>Approved</option>
+                            <option value="Rejected" {% if record.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3">{{ record.notes }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white">
+                        <i class="fas fa-save me-2"></i>Update Record
+                    </button>
+                    <a href="{% url 'admin_app:milk_overview' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Add Collector Allocation{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card-custom">
+            <div class="card-header"><i class="fas fa-user-plus me-2"></i>Allocate Collector</div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Select Collector</label>
+                        <select name="collector" class="form-select" required>
+                            <option value="">Choose Collector</option>
+                            {% for collector in collectors %}
+                            <option value="{{ collector.id }}">{{ collector.username }} ({{ collector.first_name }} {{ collector.last_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Farmer</label>
+                        <select name="farmer" class="form-select" required>
+                            <option value="">Choose Farmer</option>
+                            {% for farmer in farmers %}
+                            <option value="{{ farmer.id }}">{{ farmer.username }} ({{ farmer.first_name }} {{ farmer.last_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Area</label>
+                        <input type="text" name="area" class="form-control" placeholder="e.g., Zone A, Village X" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white">
+                        <i class="fas fa-save me-2"></i>Allocate
+                    </button>
+                    <a href="{% url 'admin_app:allocate_collectors' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
