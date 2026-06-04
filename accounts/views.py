@@ -7,6 +7,7 @@ from .models import UserProfile
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 
+
 def smart_dashboard(request):
     """Smart dashboard that redirects based on user role"""
     if not request.user.is_authenticated:
@@ -14,8 +15,9 @@ def smart_dashboard(request):
     
     return redirect_to_dashboard(request.user)
 
+
 def login_view(request):
-    """Clean login view without demo accounts"""
+    """Clean login view with pending approval check"""
     if request.user.is_authenticated:
         return redirect_to_dashboard(request.user)
     
@@ -40,10 +42,23 @@ def login_view(request):
             
             login(request, user)
             return redirect_to_dashboard(user)
+        
         else:
+            # CHECK FOR PENDING FARMERS:
+            # Django's authenticate() returns None if user.is_active is False.
+            # We check manually to give them a specific "Pending Approval" message.
+            try:
+                existing_user = User.objects.get(username=username)
+                if not existing_user.is_active and existing_user.check_password(password):
+                    messages.warning(request, 'Your account is pending admin approval. Please wait for the admin to activate your account.')
+                    return render(request, 'accounts/login.html')
+            except User.DoesNotExist:
+                pass
+                
             messages.error(request, 'Invalid username or password.')
     
     return render(request, 'accounts/login.html')
+
 
 def redirect_to_dashboard(user):
     """Redirect based on user role"""
@@ -60,8 +75,9 @@ def redirect_to_dashboard(user):
     
     return redirect(redirects.get(role, 'accounts:login'))
 
+
 def register_farmer(request):
-    """Register new farmer account"""
+    """Register new farmer account - REQUIRES ADMIN APPROVAL"""
     if request.method == 'POST':
         with transaction.atomic():
             username = request.POST.get('username', '').strip()
@@ -94,89 +110,36 @@ def register_farmer(request):
                 messages.error(request, 'Email already registered.')
                 return render(request, 'accounts/register_farmer.html')
             
-            # 1. Create user (This automatically triggers the post_save signal to create a blank profile)
+            # 1. Create user with is_active=False (PENDING ADMIN APPROVAL)
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password,
                 first_name=first_name,
-                last_name=last_name
+                last_name=last_name,
+                is_active=False  # <--- CRITICAL: Set to False so they can't login yet
             )
             
-            # 2. UPDATE the automatically created profile instead of creating a new one
+            # 2. UPDATE the automatically created profile
             profile = user.profile
             profile.role = 'farmer'
             profile.phone = phone
             profile.address = address
-            profile.save()
+            profile.save()  # This triggers the save() in models.py which auto-generates farmer_number
             
-            # 3. Auto login (FIXED: explicitly pass the user object)
-            authenticated_user = authenticate(request, username=username, password=password)
-            if authenticated_user:
-                login(request, authenticated_user)
-                messages.success(request, 'Welcome to Power Dairies! Your farmer account has been created.')
-                return redirect('farmer_app:farmer_dashboard')
+            # 3. DO NOT AUTO LOGIN. Show success message and redirect to login
+            messages.success(
+                request, 
+                f'Registration successful! Your Farmer ID is: {profile.farmer_number}. '
+                f'Your account is currently pending admin approval. You will be able to login once approved.'
+            )
+            return redirect('accounts:login')
     
     return render(request, 'accounts/register_farmer.html')
 
-def register_collector(request):
-    """Register new collector account"""
-    if request.method == 'POST':
-        with transaction.atomic():
-            username = request.POST.get('username', '').strip()
-            email = request.POST.get('email', '').strip()
-            password = request.POST.get('password', '')
-            confirm_password = request.POST.get('confirm_password', '')
-            first_name = request.POST.get('first_name', '').strip()
-            last_name = request.POST.get('last_name', '').strip()
-            phone = request.POST.get('phone', '').strip()
-            area = request.POST.get('area', '').strip()
-            
-            # Validation
-            if not username or not email or not password:
-                messages.error(request, 'All required fields must be filled.')
-                return render(request, 'accounts/register_collector.html')
-            
-            if password != confirm_password:
-                messages.error(request, 'Passwords do not match.')
-                return render(request, 'accounts/register_collector.html')
-            
-            if len(password) < 6:
-                messages.error(request, 'Password must be at least 6 characters.')
-                return render(request, 'accounts/register_collector.html')
-            
-            if User.objects.filter(username=username).exists():
-                messages.error(request, 'Username already exists.')
-                return render(request, 'accounts/register_collector.html')
-            
-            if User.objects.filter(email=email).exists():
-                messages.error(request, 'Email already registered.')
-                return render(request, 'accounts/register_collector.html')
-            
-            # 1. Create user (This automatically triggers the post_save signal to create a blank profile)
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name
-            )
-            
-            # 2. UPDATE the automatically created profile instead of creating a new one
-            profile = user.profile
-            profile.role = 'collector'
-            profile.phone = phone
-            profile.address = area
-            profile.save()
-            
-            # 3. Auto login (FIXED: explicitly pass the user object)
-            authenticated_user = authenticate(request, username=username, password=password)
-            if authenticated_user:
-                login(request, authenticated_user)
-                messages.success(request, 'Welcome to Power Dairies! Your collector account has been created.')
-                return redirect('collector_app:collector_dashboard')
-    
-    return render(request, 'accounts/register_collector.html')
+
+# NOTE: register_collector has been REMOVED. Collectors are now created exclusively by the Admin.
+
 
 @login_required
 def logout_view(request):

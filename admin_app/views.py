@@ -122,13 +122,41 @@ def manage_users(request):
 @login_required
 @admin_required
 def toggle_user_status(request, user_id):
-    """Activate or Deactivate a user account"""
+    """Activate or Deactivate a user account (also approves farmers)"""
     user = get_object_or_404(User, id=user_id)
+    
+    # Toggle the user's active status
     user.is_active = not user.is_active
     user.save()
     
-    status = "activated" if user.is_active else "deactivated"
+    # Also update profile's is_active_account
+    try:
+        profile = user.profile
+        profile.is_active_account = user.is_active
+        profile.save()
+    except UserProfile.DoesNotExist:
+        pass
+    
+    status = "activated/approved" if user.is_active else "deactivated"
     messages.success(request, f'User "{user.username}" has been successfully {status}.')
+    
+    # Notify the user
+    try:
+        if user.is_active:
+            Notification.objects.create(
+                user=user,
+                title='Account Approved',
+                message=f'Your account has been approved by admin. You can now login and access all features.'
+            )
+        else:
+            Notification.objects.create(
+                user=user,
+                title='Account Deactivated',
+                message=f'Your account has been deactivated. Please contact admin for more information.'
+            )
+    except Exception:
+        pass  # Prevents crash if notification creation fails
+    
     return redirect('admin_app:manage_users')
 
 
@@ -136,26 +164,56 @@ def toggle_user_status(request, user_id):
 @admin_required
 def add_user(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        role = request.POST.get('role')
-        phone = request.POST.get('phone')
-        address = request.POST.get('address')
+        # Extract all POST data
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        role = request.POST.get('role', '')
+        phone = request.POST.get('phone', '').strip()
+        address = request.POST.get('address', '').strip()
+        
+        # Validation
+        if not username or not email or not password or not role:
+            messages.error(request, 'Username, email, password, and role are required.')
+            return redirect('admin_app:add_user')
         
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username already exists.')
             return redirect('admin_app:add_user')
         
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return redirect('admin_app:add_user')
+        
+        # Create the user
         user = User.objects.create_user(
-            username=username, email=email, password=password,
-            first_name=first_name, last_name=last_name
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True  # Admin-created users are immediately active
         )
-        UserProfile.objects.create(user=user, role=role, phone=phone, address=address)
-        messages.success(request, f'User {username} created successfully.')
+        
+        # CRITICAL: If creating a collector, make them a staff member
+        if role == 'collector':
+            user.is_staff = True
+            user.save()
+        
+        # Update profile (automatically created by signal)
+        profile = user.profile
+        profile.role = role
+        profile.phone = phone
+        profile.address = address
+        profile.is_active_account = True
+        profile.save()
+        
+        messages.success(request, f'User "{username}" created successfully as {role}.')
         return redirect('admin_app:manage_users')
+    
+    # GET request - show the form
     return render(request, 'admin_app/add_user.html')
 
 

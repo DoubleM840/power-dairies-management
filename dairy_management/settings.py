@@ -85,3 +85,13 @@ LOGIN_URL = 'login'
 
 # Email settings for claims
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+# Session settings - Force login every time
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when browser closes
+SESSION_COOKIE_AGE = 3600  # Session expires after 1 hour of inactivity (optional)
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on every request
+
+# Optional: Set session cookie to be more secure
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+SESSION_COOKIE_SECURE = False  # Set to True if using HTTPS in production

@@ -1,38 +1,28 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 
 # Django
-*.log
-local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
-staticfiles/
+*.log
+local_settings.py
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
+# Environment variables
+.env
+.env.local
+.env.*.local
 
 # IDE
 .vscode/
@@ -44,10 +34,23 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Environment variables
-.env
-*.env
+# Media files (uploaded by users)
+media/
 
-# Database (optional - remove if you want to track migrations)
-# db.sqlite3
+# Static files (collected)
+staticfiles/
+static_collected/
+
+# Coverage
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Migrations (optional - uncomment if you want to ignore migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py

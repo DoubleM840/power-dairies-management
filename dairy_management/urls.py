@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect  # <-- THIS IMPORT WAS MISSING
 
 urlpatterns = [
-    path('django-admin/', admin.site.urls),
+    path('admin/', admin.site.urls), 
     
     # Redirect root URL to the login page
     path('', lambda request: redirect('accounts:login'), name='home'),

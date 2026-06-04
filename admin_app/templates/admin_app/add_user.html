@@ -1,64 +1,89 @@
 {% extends 'admin_app/base.html' %}
-{% block page_title %}Add New User{% endblock %}
+{% block page_title %}Add User{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card-custom">
-            <div class="card-header">
-                <i class="fas fa-user-plus me-2"></i>Create New User
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:manage_users' %}">Users</a></li>
+                <li class="breadcrumb-item active">Add User</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-user-plus text-primary me-2"></i>Add New User</h1>
+    </div>
+</div>
+
+<div class="card-custom">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row g-3">
+                <!-- Username -->
+                <div class="col-md-6">
+                    <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                
+                <!-- Email -->
+                <div class="col-md-6">
+                    <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                
+                <!-- Password -->
+                <div class="col-md-6">
+                    <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                
+                <!-- Role -->
+                <div class="col-md-6">
+                    <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="">Select Role</option>
+                        <option value="collector">Collector</option>
+                        <option value="farmer">Farmer</option>
+                    </select>
+                    <small class="text-muted">Note: Collectors are automatically set as staff members</small>
+                </div>
+                
+                <!-- First Name -->
+                <div class="col-md-6">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name">
+                </div>
+                
+                <!-- Last Name -->
+                <div class="col-md-6">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name">
+                </div>
+                
+                <!-- Phone -->
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Phone</label>
+                    <input type="text" class="form-control" id="phone" name="phone">
+                </div>
+                
+                <!-- Address -->
+                <div class="col-md-6">
+                    <label for="address" class="form-label">Address/Area</label>
+                    <input type="text" class="form-control" id="address" name="address">
+                </div>
             </div>
-            <div class="card-body p-4">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">First Name</label>
-                            <input type="text" name="first_name" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Last Name</label>
-                            <input type="text" name="last_name" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Username</label>
-                            <input type="text" name="username" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" required minlength="8">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Role</label>
-                            <select name="role" class="form-select" required>
-                                <option value="">Select Role</option>
-                                <option value="admin">Admin</option>
-                                <option value="collector">Collector</option>
-                                <option value="farmer">Farmer</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Phone</label>
-                            <input type="text" name="phone" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Address</label>
-                            <textarea name="address" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary-custom text-white">
-                            <i class="fas fa-save me-2"></i>Create User
-                        </button>
-                        <a href="{% url 'admin_app:manage_users' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
-                    </div>
-                </form>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary-custom">
+                    <i class="fas fa-save me-2"></i>Create User
+                </button>
+                <a href="{% url 'admin_app:manage_users' %}" class="btn btn-outline-custom ms-2">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </a>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}
