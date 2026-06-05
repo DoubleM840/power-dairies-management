@@ -1,3 +1,4 @@
+{% load static %}
 {% extends 'admin_app/base.html' %}
 {% block page_title %}Feed Management{% endblock %}
 
@@ -43,7 +44,7 @@
                 <tr>
                     <td>
                         {% if feed.image %}
-                        <img src="{{ feed.image.url }}" alt="{{ feed.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                        <img src="{% static feed.image %}" alt="{{ feed.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
                         {% else %}
                         <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 8px;">
                             <i class="fas fa-box"></i>
