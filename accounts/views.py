@@ -47,6 +47,20 @@ def login_view(request):
     
     return render(request, 'accounts/login.html')
 
+def demo_login(request):
+    """Auto-login demo user"""
+    from django.contrib.auth import login
+    from django.contrib.auth.models import User
+    
+    try:
+        demo_user = User.objects.get(username='demo_farmer')
+        login(request, demo_user)
+        messages.info(request, 'You are now in demo mode. Some features are limited.')
+        return redirect('farmer_app:farmer_dashboard')
+    except User.DoesNotExist:
+        messages.error(request, 'Demo account not available.')
+        return redirect('accounts:login')
+
 
 def redirect_to_dashboard(user):
     """Redirect based on user role"""
