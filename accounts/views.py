@@ -17,7 +17,7 @@ def smart_dashboard(request):
 
 
 def login_view(request):
-    """Clean login view with pending approval check"""
+    """Clean login view - no approval check"""
     if request.user.is_authenticated:
         return redirect_to_dashboard(request.user)
     
@@ -42,19 +42,7 @@ def login_view(request):
             
             login(request, user)
             return redirect_to_dashboard(user)
-        
         else:
-            # CHECK FOR PENDING FARMERS:
-            # Django's authenticate() returns None if user.is_active is False.
-            # We check manually to give them a specific "Pending Approval" message.
-            try:
-                existing_user = User.objects.get(username=username)
-                if not existing_user.is_active and existing_user.check_password(password):
-                    messages.warning(request, 'Your account is pending admin approval. Please wait for the admin to activate your account.')
-                    return render(request, 'accounts/login.html')
-            except User.DoesNotExist:
-                pass
-                
             messages.error(request, 'Invalid username or password.')
     
     return render(request, 'accounts/login.html')
@@ -77,7 +65,7 @@ def redirect_to_dashboard(user):
 
 
 def register_farmer(request):
-    """Register new farmer account - REQUIRES ADMIN APPROVAL"""
+    """Register new farmer account - IMMEDIATE ACCESS (no approval needed)"""
     if request.method == 'POST':
         try:
             username = request.POST.get('username', '').strip()
@@ -110,19 +98,18 @@ def register_farmer(request):
                 messages.error(request, 'Email already registered.')
                 return render(request, 'accounts/register_farmer.html')
             
-            # 1. Create user with is_active=False (PENDING ADMIN APPROVAL)
+            # 1. Create user with is_active=True (IMMEDIATE ACCESS)
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                is_active=False
+                is_active=True  # IMMEDIATE ACCESS - no approval needed
             )
             
             # 2. Generate UNIQUE farmer number using timestamp + user ID
             now = timezone.now()
-            # Format: FRM-2026-1304151234567891 (year + hour+min+sec+microseconds + user_id)
             timestamp = now.strftime('%H%M%S%f')
             farmer_number = f'FRM-{now.year}-{timestamp}{user.id}'
             
@@ -138,7 +125,7 @@ def register_farmer(request):
             messages.success(
                 request, 
                 f'Registration successful! Your Farmer ID is: {farmer_number}. '
-                f'Your account is currently pending admin approval. You will be able to login once approved.'
+                f'You can now login and access your dashboard.'
             )
             return redirect('accounts:login')
             
