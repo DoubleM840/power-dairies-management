@@ -71,7 +71,18 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
 
 
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
+def save(self, *args, **kwargs):
+    # Only generate farmer number if it doesn't exist and user is a farmer
+    if self.role == 'farmer' and not self.farmer_number and self.pk:
+        from django.utils import timezone
+        import time
+        
+        # Use timestamp + user ID to guarantee uniqueness
+        now = timezone.now()
+        timestamp = now.strftime('%H%M%S%f')  # Hour-Minute-Second-Microsecond
+        user_id = self.user.id if self.user.id else 1
+        
+        # Format: FRM-2026-130415123456 (year + timestamp)
+        self.farmer_number = f'FRM-{now.year}-{timestamp}{user_id}'
+    
+    super().save(*args, **kwargs)
