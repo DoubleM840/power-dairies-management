@@ -79,7 +79,7 @@ def redirect_to_dashboard(user):
 def register_farmer(request):
     """Register new farmer account - REQUIRES ADMIN APPROVAL"""
     if request.method == 'POST':
-        with transaction.atomic():
+        try:
             username = request.POST.get('username', '').strip()
             email = request.POST.get('email', '').strip()
             password = request.POST.get('password', '')
@@ -117,23 +117,34 @@ def register_farmer(request):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                is_active=False  # <--- CRITICAL: Set to False so they can't login yet
+                is_active=False
             )
             
-            # 2. UPDATE the automatically created profile
+            # 2. Generate UNIQUE farmer number using timestamp + user ID
+            now = timezone.now()
+            # Format: FRM-2026-1304151234567891 (year + hour+min+sec+microseconds + user_id)
+            timestamp = now.strftime('%H%M%S%f')
+            farmer_number = f'FRM-{now.year}-{timestamp}{user.id}'
+            
+            # Update the profile
             profile = user.profile
             profile.role = 'farmer'
             profile.phone = phone
             profile.address = address
-            profile.save()  # This triggers the save() in models.py which auto-generates farmer_number
+            profile.farmer_number = farmer_number
+            profile.save()
             
-            # 3. DO NOT AUTO LOGIN. Show success message and redirect to login
+            # 3. Show success message
             messages.success(
                 request, 
-                f'Registration successful! Your Farmer ID is: {profile.farmer_number}. '
+                f'Registration successful! Your Farmer ID is: {farmer_number}. '
                 f'Your account is currently pending admin approval. You will be able to login once approved.'
             )
             return redirect('accounts:login')
+            
+        except Exception as e:
+            messages.error(request, f'Registration failed. Please try again.')
+            return render(request, 'accounts/register_farmer.html')
     
     return render(request, 'accounts/register_farmer.html')
 
