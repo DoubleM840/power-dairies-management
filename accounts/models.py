@@ -19,7 +19,7 @@ class UserProfile(models.Model):
     is_active_account = models.BooleanField(default=True)
     last_login = models.DateTimeField(blank=True, null=True)
     
-    # NEW: Unique Farmer Number
+    # Unique Farmer Number
     farmer_number = models.CharField(max_length=20, blank=True, null=True, unique=True)
 
     class Meta:
@@ -34,23 +34,33 @@ class UserProfile(models.Model):
     def save(self, *args, **kwargs):
         # Auto-generate farmer number if role is farmer and no number exists
         if self.role == 'farmer' and not self.farmer_number:
-            # Generate format: FRM-YYYY-XXXX (e.g., FRM-2026-0001)
             from django.utils import timezone
             year = timezone.now().year
-            # Get the last farmer and increment
-            last_user = UserProfile.objects.filter(
-                role='farmer', 
-                farmer_number__startswith=f'FRM-{year}-'
-            ).order_by('-farmer_number').first()
             
-            if last_user:
-                # Extract number and increment
-                last_num = int(last_user.farmer_number.split('-')[-1])
-                new_num = str(last_num + 1).zfill(4)
-            else:
-                new_num = '0001'
+            # Keep trying until we find a unique number
+            attempt = 1
+            while attempt <= 1000:  # Safety limit
+                # Count existing farmers this year
+                farmer_count = UserProfile.objects.filter(
+                    role='farmer', 
+                    farmer_number__startswith=f'FRM-{year}-'
+                ).count()
+                
+                # Generate candidate number
+                new_num = str(farmer_count + attempt).zfill(4)
+                candidate_number = f'FRM-{year}-{new_num}'
+                
+                # Check if this number already exists
+                if not UserProfile.objects.filter(farmer_number=candidate_number).exists():
+                    self.farmer_number = candidate_number
+                    break
+                
+                # Try next number
+                attempt += 1
             
-            self.farmer_number = f'FRM-{year}-{new_num}'
+            # If we couldn't find a unique number after 1000 attempts
+            if attempt > 1000:
+                raise Exception("Could not generate unique farmer number after 1000 attempts")
         
         super().save(*args, **kwargs)
 
