@@ -3,11 +3,11 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="card-custom">
             <div class="card-header"><i class="fas fa-edit me-2"></i>Edit: {{ feed.name }}</div>
             <div class="card-body p-4">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label class="form-label">Feed Name</label>
@@ -24,7 +24,12 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Unit</label>
-                            <input type="text" name="unit" class="form-control" value="{{ feed.unit }}">
+                            <select name="unit" class="form-select">
+                                <option value="kg" {% if feed.unit == 'kg' %}selected{% endif %}>Kilograms (kg)</option>
+                                <option value="bale" {% if feed.unit == 'bale' %}selected{% endif %}>Bale</option>
+                                <option value="bag" {% if feed.unit == 'bag' %}selected{% endif %}>Bag</option>
+                                <option value="liter" {% if feed.unit == 'liter' %}selected{% endif %}>Liter</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Stock Quantity</label>
@@ -33,6 +38,22 @@
                         <div class="col-md-6">
                             <label class="form-label">Low Stock Threshold</label>
                             <input type="number" name="low_stock_threshold" class="form-control" value="{{ feed.low_stock_threshold }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Feed Image</label>
+                            {% if feed.image %}
+                            <div class="mb-2">
+                                <img src="{{ feed.image.url }}" alt="{{ feed.name }}"
+                                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                                <small class="text-muted ms-2">Current image</small>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="clear_image" id="clearImage">
+                                <label class="form-check-label text-danger" for="clearImage">Remove current image</label>
+                            </div>
+                            {% endif %}
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <small class="text-muted">Upload a new image to replace the current one. Recommended: 400x300px</small>
                         </div>
                     </div>
                     <div class="mt-4">

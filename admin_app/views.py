@@ -432,7 +432,7 @@ def manage_feeds(request):
 @admin_required
 def add_feed(request):
     if request.method == 'POST':
-        Feed.objects.create(
+        feed = Feed(
             name=request.POST.get('name'),
             description=request.POST.get('description'),
             price=request.POST.get('price'),
@@ -440,6 +440,9 @@ def add_feed(request):
             low_stock_threshold=request.POST.get('low_stock_threshold', 50),
             unit=request.POST.get('unit', 'kg'),
         )
+        if request.FILES.get('image'):
+            feed.image = request.FILES['image']
+        feed.save()
         messages.success(request, 'Feed added successfully.')
         return redirect('admin_app:manage_feeds')
     return render(request, 'admin_app/add_feed.html')
@@ -456,6 +459,11 @@ def edit_feed(request, feed_id):
         feed.stock_quantity = request.POST.get('stock_quantity')
         feed.low_stock_threshold = request.POST.get('low_stock_threshold')
         feed.unit = request.POST.get('unit')
+        # Handle image: replace, clear, or keep existing
+        if request.FILES.get('image'):
+            feed.image = request.FILES['image']
+        elif request.POST.get('clear_image'):
+            feed.image = None
         feed.save()
         messages.success(request, 'Feed updated successfully.')
         return redirect('admin_app:manage_feeds')
