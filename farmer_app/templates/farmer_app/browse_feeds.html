@@ -50,20 +50,33 @@
                 <h5 class="card-title">{{ feed.name }}</h5>
                 <p class="text-muted mb-2">{{ feed.description|truncatewords:15 }}</p>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="badge bg-light text-dark">{{ feed.category }}</span>
-                    <strong class="text-primary fs-5">KES {{ feed.price }}/{{ feed.unit }}</strong>
+                    <span class="badge bg-light text-dark">{{ feed.get_category_display }}</span>
+                    <strong class="text-primary fs-5">KES {{ feed.price|floatformat:2 }}/{{ feed.unit }}</strong>
                 </div>
+                
+                <!-- Quantity Selector -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Quantity ({{ feed.get_unit_display }}):</label>
+                    <div class="input-group">
+                        <button class="btn btn-outline-secondary btn-decrease" type="button" data-feed-id="{{ feed.id }}">-</button>
+                        <input type="number" class="form-control text-center qty-input" data-feed-id="{{ feed.id }}" value="1" min="1" max="{{ feed.stock_quantity|floatformat:0 }}">
+                        <button class="btn btn-outline-secondary btn-increase" type="button" data-feed-id="{{ feed.id }}">+</button>
+                    </div>
+                    <small class="text-muted">Available: {{ feed.stock_quantity|floatformat:0 }} {{ feed.unit }}</small>
+                </div>
+                
                 <div class="d-flex gap-2">
-                    <a href="{% url 'farmer_app:add_to_cart' feed.id %}" class="btn btn-outline-primary flex-grow-1">
+                    <button class="btn btn-outline-primary flex-grow-1 btn-add-cart" data-feed-id="{{ feed.id }}">
                         <i class="fas fa-cart-plus me-2"></i>Add to Cart
-                    </a>
-                    <a href="{% url 'farmer_app:order_feed' feed.id %}" class="btn btn-primary-custom text-white">
+                    </button>
+                    <button class="btn btn-primary-custom text-white btn-buy-now" data-feed-id="{{ feed.id }}">
                         <i class="fas fa-bolt me-2"></i>Buy Now
-                    </a>
+                    </button>
                 </div>
+                
                 {% if feed.stock_quantity <= feed.low_stock_threshold %}
                 <div class="alert alert-warning mt-2 mb-0 py-1 small">
-                    <i class="fas fa-exclamation-triangle me-1"></i>Low Stock: {{ feed.stock_quantity }} {{ feed.unit }} left
+                    <i class="fas fa-exclamation-triangle me-1"></i>Low Stock: {{ feed.stock_quantity|floatformat:0 }} {{ feed.unit }} left
                 </div>
                 {% endif %}
             </div>
@@ -78,4 +91,53 @@
     <p class="text-muted">Check back later for new stock.</p>
 </div>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle increase buttons
+    document.querySelectorAll('.btn-increase').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var feedId = this.getAttribute('data-feed-id');
+            var input = document.querySelector('.qty-input[data-feed-id="' + feedId + '"]');
+            var max = parseInt(input.getAttribute('max'));
+            var currentValue = parseInt(input.value);
+            if (currentValue < max) {
+                input.value = currentValue + 1;
+            }
+        });
+    });
+
+    // Handle decrease buttons
+    document.querySelectorAll('.btn-decrease').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var feedId = this.getAttribute('data-feed-id');
+            var input = document.querySelector('.qty-input[data-feed-id="' + feedId + '"]');
+            var currentValue = parseInt(input.value);
+            if (currentValue > 1) {
+                input.value = currentValue - 1;
+            }
+        });
+    });
+
+    // Handle Add to Cart buttons
+    document.querySelectorAll('.btn-add-cart').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var feedId = this.getAttribute('data-feed-id');
+            var input = document.querySelector('.qty-input[data-feed-id="' + feedId + '"]');
+            var quantity = input.value;
+            window.location.href = '/farmer-app/feeds/cart/add/' + feedId + '/?quantity=' + quantity;
+        });
+    });
+
+    // Handle Buy Now buttons
+    document.querySelectorAll('.btn-buy-now').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var feedId = this.getAttribute('data-feed-id');
+            var input = document.querySelector('.qty-input[data-feed-id="' + feedId + '"]');
+            var quantity = input.value;
+            window.location.href = '/farmer-app/feeds/order/' + feedId + '/?quantity=' + quantity;
+        });
+    });
+});
+</script>
 {% endblock %}

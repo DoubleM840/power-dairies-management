@@ -43,50 +43,72 @@ def admin_required(view_func):
 @login_required
 @admin_required
 def admin_dashboard(request):
-    total_users = User.objects.filter(profile__role='farmer').count()
+    today = timezone.now().date()
+    
+    # User Statistics
+    total_farmers = User.objects.filter(profile__role='farmer').count()
     total_collectors = User.objects.filter(profile__role='collector', profile__is_approved=True).count()
     pending_collectors = User.objects.filter(profile__role='collector', profile__is_approved=False).count()
     
-    today = timezone.now().date()
-    today_milk = MilkRecord.objects.filter(date_collected=today).aggregate(total=Sum('quantity'))['total'] or 0
+    # Milk Statistics
+    today_milk = MilkRecord.objects.filter(date_collected=today).aggregate(
+        total=Sum('quantity'))['total'] or 0
+    today_milk_records = MilkRecord.objects.filter(date_collected=today).count()
+    
     month_ago = today - timedelta(days=30)
-    monthly_milk = MilkRecord.objects.filter(date_collected__gte=month_ago).aggregate(total=Sum('quantity'))['total'] or 0
+    monthly_milk = MilkRecord.objects.filter(date_collected__gte=month_ago).aggregate(
+        total=Sum('quantity'))['total'] or 0
     
+    # Financial Overview
+    total_revenue = Payment.objects.filter(status='Completed').aggregate(
+        total=Sum('amount'))['total'] or 0
     pending_payments = Payment.objects.filter(status='Pending').count()
-    pending_claims = Claim.objects.filter(status='Pending').count()
+    pending_amount = Payment.objects.filter(status='Pending').aggregate(
+        total=Sum('amount'))['total'] or 0
+    
+    # Orders & Inventory
+    pending_orders = FeedOrder.objects.filter(status='Pending').count()
     low_stock_feeds = Feed.objects.filter(stock_quantity__lte=F('low_stock_threshold'))
+    low_stock_count = low_stock_feeds.count()
     
-    notifications = []
-    if pending_collectors > 0:
-        notifications.append({'type': 'collector', 'message': f'{pending_collectors} collector(s) awaiting approval', 'time': timezone.now()})
+    # Claims
+    pending_claims = Claim.objects.filter(status='Pending').count()
     
-    new_claims = Claim.objects.filter(status='Pending', date_filed__gte=today - timedelta(days=1))
-    for claim in new_claims:
-        farmer_name = getattr(claim.farmer, 'user', claim.farmer).username
-        notifications.append({'type': 'claim', 'message': f'New pending claim from {farmer_name}', 'time': claim.date_filed})
-        
-    new_farmers = User.objects.filter(profile__role='farmer', date_joined__gte=today - timedelta(days=1))
-    for farmer in new_farmers:
-        notifications.append({'type': 'farmer', 'message': f'New farmer joined: {farmer.username}', 'time': farmer.date_joined})
-        
-    for feed in low_stock_feeds:
-        notifications.append({'type': 'stock', 'message': f'Low stock alert: {feed.name} ({feed.stock_quantity} {feed.unit} left)', 'time': timezone.now()})
-        
-    notifications.sort(key=lambda x: x['time'], reverse=True)
-
+    # Recent Activity
+    recent_milk_records = MilkRecord.objects.select_related('farmer', 'collector').order_by('-date_collected')[:5]
+    recent_orders = FeedOrder.objects.select_related('farmer', 'feed').order_by('-order_date')[:5]
+    
+    # Chart data - last 7 days milk collection
     last_7_days = []
     quantities = []
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
         last_7_days.append(day.strftime('%Y-%m-%d'))
-        qty = MilkRecord.objects.filter(date_collected=day).aggregate(total=Sum('quantity'))['total'] or 0
+        qty = MilkRecord.objects.filter(date_collected=day).aggregate(
+            total=Sum('quantity'))['total'] or 0
         quantities.append(float(qty))
-    
+    recent_farmers = User.objects.filter(profile__role='farmer').order_by('-date_joined')[:10]
+
     context = {
-        'total_users': total_users, 'total_collectors': total_collectors, 'pending_collectors': pending_collectors,
-        'pending_collectors_count': pending_collectors, 'today_milk': today_milk, 'monthly_milk': monthly_milk,
-        'pending_payments': pending_payments, 'pending_claims': pending_claims, 'low_stock_feeds': low_stock_feeds,
-        'notifications': notifications[:10], 'labels': json.dumps(last_7_days), 'quantities': json.dumps(quantities),
+        'total_farmers': total_farmers,
+        'total_collectors': total_collectors,
+        'pending_collectors': pending_collectors,
+        'pending_collectors_count': pending_collectors,
+        'today_milk': today_milk,
+        'today_milk_records': today_milk_records,
+        'monthly_milk': monthly_milk,
+        'total_revenue': total_revenue,
+        'pending_payments': pending_payments,
+        'pending_amount': pending_amount,
+        'pending_orders': pending_orders,
+        'low_stock_feeds': low_stock_feeds,
+        'low_stock_count': low_stock_count,
+        'pending_claims': pending_claims,
+        'recent_milk_records': recent_milk_records,
+        'recent_orders': recent_orders,
+        'labels': json.dumps(last_7_days),
+        'quantities': json.dumps(quantities),
+        'recent_farmers': recent_farmers,
     }
     return render(request, 'admin_app/dashboard.html', context)
 

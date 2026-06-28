@@ -2,56 +2,122 @@
 {% block page_title %}Add Feed{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card-custom">
-            <div class="card-header"><i class="fas fa-plus me-2"></i>Add New Feed</div>
-            <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Feed Name</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Price (KES)</label>
-                            <input type="number" name="price" class="form-control" step="0.01" required>
+<div class="container-fluid px-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'admin_app:manage_feeds' %}">Feeds</a></li>
+                    <li class="breadcrumb-item active">Add New Feed</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0"><i class="fas fa-plus-circle text-primary me-2"></i>Add New Feed</h1>
+        </div>
+        <a href="{% url 'admin_app:manage_feeds' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Feeds
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card-custom">
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Feed Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required placeholder="e.g., Dairy Meal Plus">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Unit</label>
-                            <select name="unit" class="form-select">
-                                <option value="kg">Kilograms (kg)</option>
-                                <option value="bale">Bale</option>
-                                <option value="bag">Bag</option>
-                                <option value="liter">Liter</option>
-                            </select>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                            <textarea name="description" class="form-control" rows="3" required placeholder="Brief description of the feed"></textarea>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Stock Quantity</label>
-                            <input type="number" name="stock_quantity" class="form-control" required>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+                                <select name="category" class="form-select" required>
+                                    <option value="">Select Category</option>
+                                    <option value="concentrates">Concentrates</option>
+                                    <option value="roughages">Roughages</option>
+                                    <option value="minerals">Minerals & Supplements</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Unit <span class="text-danger">*</span></label>
+                                <select name="unit" class="form-select" required>
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="bale">Bale</option>
+                                    <option value="sack">Sack</option>
+                                    <option value="liter">Liter (L)</option>
+                                    <option value="bundle">Bundle</option>
+                                    <option value="bag">Bag</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Low Stock Threshold</label>
-                            <input type="number" name="low_stock_threshold" class="form-control" value="50">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Price per Unit (KES) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">KES</span>
+                                    <input type="number" name="price" class="form-control" step="0.01" min="0" required placeholder="0.00">
+                                </div>
+                                <small class="text-muted">Price for 1 unit (e.g., 1 bale, 1 sack)</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Stock Quantity <span class="text-danger">*</span></label>
+                                <input type="number" name="stock_quantity" class="form-control" step="0.01" min="0" required placeholder="0">
+                                <small class="text-muted">Total units available</small>
+                            </div>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Feed Image (Optional)</label>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Low Stock Threshold</label>
+                            <input type="number" name="low_stock_threshold" class="form-control" step="0.01" min="0" value="50" placeholder="50">
+                            <small class="text-muted">Alert when stock falls below this number</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Feed Image</label>
                             <input type="file" name="image" class="form-control" accept="image/*">
-                            <small class="text-muted">Recommended size: 400x300px</small>
+                            <small class="text-muted">Upload an image of the feed (optional)</small>
                         </div>
-                    </div>
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary-custom text-white">
-                            <i class="fas fa-save me-2"></i>Add Feed
-                        </button>
-                        <a href="{% url 'admin_app:manage_feeds' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
-                    </div>
-                </form>
+
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'admin_app:manage_feeds' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary-custom text-white flex-grow-1">
+                                <i class="fas fa-save me-2"></i>Add Feed
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h6 class="mb-0 text-info"><i class="fas fa-info-circle me-2"></i>Help</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-2"><strong>Units:</strong></p>
+                    <ul class="small text-muted mb-3">
+                        <li><strong>kg</strong> - Kilogram (for loose feeds)</li>
+                        <li><strong>bale</strong> - Bale (for hay, silage)</li>
+                        <li><strong>sack</strong> - Sack (for bagged feeds)</li>
+                        <li><strong>liter</strong> - Liter (for liquid feeds)</li>
+                        <li><strong>bundle</strong> - Bundle (for grass, hay)</li>
+                        <li><strong>bag</strong> - Bag (for packaged feeds)</li>
+                    </ul>
+                    <p class="small mb-0"><strong>Tip:</strong> Set the price per unit. For example, if a bale costs KES 500, enter 500 and select "Bale" as the unit.</p>
+                </div>
             </div>
         </div>
     </div>

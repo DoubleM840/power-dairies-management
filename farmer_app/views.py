@@ -43,6 +43,7 @@ def farmer_required(view_func):
 def farmer_dashboard(request):
     today = timezone.now().date()
     
+    # Milk Statistics
     total_milk = MilkRecord.objects.filter(farmer=request.user).aggregate(
         total=Sum('quantity'))['total'] or 0
     
@@ -51,15 +52,52 @@ def farmer_dashboard(request):
         date_collected__gte=today.replace(day=1)
     ).aggregate(total=Sum('quantity'))['total'] or 0
     
+    today_milk = MilkRecord.objects.filter(
+        farmer=request.user,
+        date_collected=today
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+    
+    # Financial Overview
+    approved_milk = MilkRecord.objects.filter(farmer=request.user, status='Approved')
+    total_liters = approved_milk.aggregate(total=Sum('quantity'))['total'] or 0
+    
+    # Calculate earnings (assuming rate of 50 KES per liter)
+    rate_per_liter = 50
+    gross_earnings = total_liters * rate_per_liter
+    
+    # Get deductions
+    deductions = Payment.objects.filter(
+        user=request.user,
+        payment_type='milk_deduction',
+        status__in=['Pending', 'Completed']
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    net_earnings = gross_earnings - deductions
+    
     pending_payments = Payment.objects.filter(
         user=request.user, status='Pending').count()
     
+    # Orders
+    pending_orders = FeedOrder.objects.filter(
+        farmer=request.user, status__in=['Pending', 'Confirmed', 'Processing']).count()
+    completed_orders = FeedOrder.objects.filter(
+        farmer=request.user, status='Delivered').count()
+    
+    # Livestock
+    cows_count = Cow.objects.filter(farmer=request.user).count()
+    healthy_cows = Cow.objects.filter(farmer=request.user, health_status='Healthy').count()
+    
+    # Notifications
     unread_notifications = Notification.objects.filter(
         user=request.user, is_read=False).count()
     
-    cows_count = Cow.objects.filter(farmer=request.user).count()
-    pending_orders = FeedOrder.objects.filter(
-        farmer=request.user, status__in=['Pending', 'Confirmed', 'Processing']).count()
+    # Recent milk records
+    recent_records = MilkRecord.objects.filter(
+        farmer=request.user).order_by('-date_collected')[:5]
+    
+    # Recent orders
+    recent_orders = FeedOrder.objects.filter(
+        farmer=request.user).select_related('feed').order_by('-order_date')[:5]
     
     # Chart data - last 7 days
     labels = []
@@ -75,10 +113,19 @@ def farmer_dashboard(request):
     context = {
         'total_milk': total_milk,
         'this_month': this_month,
+        'today_milk': today_milk,
+        'gross_earnings': gross_earnings,
+        'deductions': deductions,
+        'net_earnings': net_earnings,
         'pending_payments': pending_payments,
         'unread_notifications': unread_notifications,
         'cows_count': cows_count,
+        'healthy_cows': healthy_cows,
         'pending_orders': pending_orders,
+        'completed_orders': completed_orders,
+        'recent_records': recent_records,
+        'recent_orders': recent_orders,
+        'rate_per_liter': rate_per_liter,
         'labels': json.dumps(labels),
         'quantities': json.dumps(quantities),
     }
@@ -136,8 +183,9 @@ def browse_feeds(request):
 @login_required
 @farmer_required
 def order_feed(request, feed_id):
-    """Add feed to cart and redirect to checkout"""
+    """Add feed to cart with quantity and redirect to checkout"""
     feed = get_object_or_404(Feed, id=feed_id, is_active=True)
+    quantity = int(request.GET.get('quantity', request.POST.get('quantity', 1)))
     
     # Get or create cart
     cart, created = Cart.objects.get_or_create(farmer=request.user)
@@ -145,12 +193,12 @@ def order_feed(request, feed_id):
     # Add to cart or update quantity
     cart_item, created = CartItem.objects.get_or_create(cart=cart, feed=feed)
     if not created:
-        cart_item.quantity += 1
+        cart_item.quantity += quantity
     else:
-        cart_item.quantity = 1
+        cart_item.quantity = quantity
     cart_item.save()
     
-    messages.success(request, f'{feed.name} added to cart. Proceed to checkout.')
+    messages.success(request, f'{quantity} {feed.unit} of {feed.name} added to cart. Proceed to checkout.')
     return redirect('farmer_app:checkout_cart')
 
 
@@ -172,14 +220,18 @@ def view_cart(request):
 @farmer_required
 def add_to_cart(request, feed_id):
     feed = get_object_or_404(Feed, id=feed_id)
+    quantity = int(request.GET.get('quantity', request.POST.get('quantity', 1)))
+    
     cart, created = Cart.objects.get_or_create(farmer=request.user)
     
     cart_item, created = CartItem.objects.get_or_create(cart=cart, feed=feed)
     if not created:
-        cart_item.quantity += 1
-        cart_item.save()
+        cart_item.quantity += quantity
+    else:
+        cart_item.quantity = quantity
+    cart_item.save()
     
-    messages.success(request, f'{feed.name} added to cart.')
+    messages.success(request, f'{quantity} {feed.unit} of {feed.name} added to cart.')
     return redirect('farmer_app:view_cart')
 
 
@@ -246,8 +298,7 @@ def checkout_cart(request):
                 f'Your order is pending admin approval.'
             )
         
-        # For real M-Pesa, the payment is handled via AJAX in the template
-        # Create orders here
+        # Create orders
         for item in cart.items.all():
             FeedOrder.objects.create(
                 farmer=request.user,
@@ -256,6 +307,7 @@ def checkout_cart(request):
                 total_price=item.total_price,
                 status='Pending'
             )
+            # Reduce stock
             item.feed.stock_quantity -= item.quantity
             item.feed.save()
         

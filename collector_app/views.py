@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Avg
+import json
+from datetime import timedelta 
 from farmer_app.models import (
     UserProfile, MilkRecord, Payment, Notification, CollectorAllocation, User
 )
@@ -37,12 +39,16 @@ def collector_dashboard(request):
         is_active=True
     ).select_related('farmer')
     
-    allocated_farmers = [allocation.farmer for allocation in allocations]
+    allocated_farmers_count = allocations.count()
     
     # Stats
     today_milk = MilkRecord.objects.filter(
         collector=request.user, date_collected=today
     ).aggregate(total=Sum('quantity'))['total'] or 0
+    
+    today_collections_count = MilkRecord.objects.filter(
+        collector=request.user, date_collected=today
+    ).count()
     
     total_milk = MilkRecord.objects.filter(
         collector=request.user
@@ -55,14 +61,46 @@ def collector_dashboard(request):
     pending_records = MilkRecord.objects.filter(
         collector=request.user, status='Pending'
     ).count()
-
+    
+    approved_records = MilkRecord.objects.filter(
+        collector=request.user, status='Approved'
+    ).count()
+    
+    # Calculate total payments for today's collections
+    today_payments = Payment.objects.filter(
+        user=request.user,
+        date_created__date=today,
+        status='Completed'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Recent collections
+    recent_collections = MilkRecord.objects.filter(
+        collector=request.user
+    ).select_related('farmer').order_by('-date_collected')[:10]
+    
+    # Chart data - last 7 days
+    labels = []
+    quantities = []
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        labels.append(date.strftime('%b %d'))
+        qty = MilkRecord.objects.filter(
+            collector=request.user, date_collected=date
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        quantities.append(float(qty))
+    
     context = {
         'today_milk': today_milk,
+        'today_collections_count': today_collections_count,
         'total_milk': total_milk,
         'total_farmers_visited': total_farmers_visited,
+        'allocated_farmers_count': allocated_farmers_count,
         'pending_records': pending_records,
-        'allocated_farmers': allocated_farmers,
-        'allocations_count': allocations.count(),
+        'approved_records': approved_records,
+        'today_payments': today_payments,
+        'recent_collections': recent_collections,
+        'labels': json.dumps(labels),
+        'quantities': json.dumps(quantities),
     }
     return render(request, 'collector_app/dashboard.html', context)
 
@@ -75,12 +113,10 @@ def collect_milk(request):
         date_collected = request.POST.get('date_collected')
         notes = request.POST.get('notes', '')
         
-        # Always use standard 3.5% fat content
-        fat_content = 3.5
+        fat_content = 3.5  # Standard fat content
         
         farmer = get_object_or_404(User, id=farmer_id)
         
-        # Create the record
         record = MilkRecord.objects.create(
             farmer=farmer,
             collector=request.user,
@@ -91,14 +127,16 @@ def collect_milk(request):
             status='Pending'
         )
         
-        # Notify farmer
+        # Calculate estimated payment (e.g., 50 KES per liter)
+        rate_per_liter = 50
+        estimated_payment = float(quantity) * rate_per_liter
+        
         Notification.objects.create(
             user=farmer,
             title='Milk Collected',
-            message=f'{quantity}L of milk was collected by {request.user.username} on {date_collected}.'
+            message=f'{quantity}L of milk was collected by {request.user.username} on {date_collected}. Estimated payment: KES {estimated_payment:.2f}'
         )
         
-        # Notify all Admins
         admins = User.objects.filter(profile__role='admin')
         for admin in admins:
             Notification.objects.create(
@@ -107,7 +145,12 @@ def collect_milk(request):
                 message=f'Collector {request.user.username} recorded {quantity}L from {farmer.username}.'
             )
 
-        messages.success(request, f'Successfully recorded {quantity}L for {farmer.username}.')
+        messages.success(
+            request, 
+            f'Successfully recorded {quantity}L for {farmer.username}. '
+            f'Estimated payment: KES {estimated_payment:.2f}'
+        )
+        
         return redirect('collector_app:milk_records')
     
     # GET request - Only show farmers allocated to this collector

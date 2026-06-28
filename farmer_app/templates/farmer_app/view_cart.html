@@ -11,77 +11,113 @@
 
 {% if cart.items.all %}
 <div class="row">
+    <!-- Cart Items Table -->
     <div class="col-lg-8">
         <div class="card-custom">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th class="ps-4">Feed</th>
-                                <th>Price</th>
+                                <th class="ps-4">Feed Item</th>
+                                <th>Unit Price</th>
                                 <th>Quantity</th>
                                 <th>Subtotal</th>
-                                <th>Action</th>
+                                <th class="text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in cart.items.all %}
                             <tr>
                                 <td class="ps-4">
-                                    <strong>{{ item.feed.name }}</strong>
-                                    <br><small class="text-muted">{{ item.feed.unit }}</small>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.feed.image %}
+                                        <img src="{{ item.feed.image.url }}" alt="{{ item.feed.name }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-box text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <strong>{{ item.feed.name }}</strong>
+                                            <br><small class="text-muted">{{ item.feed.get_category_display|default:item.feed.category }}</small>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td>KES {{ item.feed.price }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <td><strong>KES {{ item.total_price }}</strong></td>
                                 <td>
-                                    <a href="{% url 'farmer_app:remove_from_cart' item.id %}" class="btn btn-sm btn-outline-danger">
+                                    <strong>KES {{ item.feed.price|floatformat:2 }}</strong>
+                                    <br><small class="text-muted">per {{ item.feed.get_unit_display|lower }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-3 py-2">
+                                        {{ item.quantity }} {{ item.feed.unit }}{{ item.quantity|pluralize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">KES {{ item.total_price|floatformat:2 }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'farmer_app:remove_from_cart' item.id %}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       title="Remove from cart"
+                                       onclick="return confirm('Remove {{ item.feed.name }} from cart?')">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
-                        <tfoot>
-                            <tr class="table-light">
-                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                                <td colspan="2"><strong class="fs-4 text-primary">KES {{ cart.total_price }}</strong></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Order Summary Sidebar -->
     <div class="col-lg-4">
-        <div class="card-custom">
-            <div class="card-header">
-                <h5 class="mb-0">Order Summary</h5>
+        <div class="card-custom sticky-top" style="top: 20px;">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-receipt me-2 text-primary"></i>Order Summary</h5>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Items:</span>
+                    <span class="text-muted">Total Items:</span>
                     <strong>{{ cart.items.count }}</strong>
                 </div>
-                <div class="d-flex justify-content-between mb-3">
-                    <span>Total:</span>
-                    <strong class="text-primary">KES {{ cart.total_price }}</strong>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="fw-bold fs-5">Total Amount:</span>
+                    <strong class="text-primary fs-4">KES {{ cart.total_price|floatformat:2 }}</strong>
                 </div>
-                <a href="{% url 'farmer_app:checkout_cart' %}" class="btn btn-primary-custom text-white w-100 py-3">
-                    <i class="fas fa-credit-card me-2"></i>Proceed to Checkout
+
+                <!-- Payment Methods Info -->
+                <div class="alert alert-light border mb-4 small">
+                    <p class="mb-1"><i class="fas fa-mobile-alt text-success me-1"></i> Pay via <strong>M-Pesa</strong></p>
+                    <p class="mb-0"><i class="fas fa-tint text-primary me-1"></i> Or deduct from <strong>Milk Earnings</strong></p>
+                </div>
+                
+                <a href="{% url 'farmer_app:checkout_cart' %}" class="btn btn-primary-custom text-white w-100 py-3 fs-5">
+                    <i class="fas fa-lock me-2"></i>Proceed to Checkout
+                </a>
+                
+                <a href="{% url 'farmer_app:browse_feeds' %}" class="btn btn-link w-100 mt-2 text-decoration-none">
+                    <i class="fas fa-arrow-left me-1"></i> Continue Shopping
                 </a>
             </div>
         </div>
     </div>
 </div>
 {% else %}
+<!-- Empty Cart State -->
 <div class="text-center py-5">
-    <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
-    <h4 class="text-muted">Your cart is empty</h4>
-    <p class="text-muted">Browse our feeds and add items to your cart.</p>
-    <a href="{% url 'farmer_app:browse_feeds' %}" class="btn btn-primary-custom text-white mt-3">
+    <div class="mb-4">
+        <i class="fas fa-shopping-cart fa-4x text-muted"></i>
+    </div>
+    <h4 class="text-muted mb-2">Your cart is empty</h4>
+    <p class="text-muted mb-4">Looks like you haven't added any feeds to your cart yet.</p>
+    <a href="{% url 'farmer_app:browse_feeds' %}" class="btn btn-primary-custom text-white px-4 py-2">
         <i class="fas fa-box me-2"></i>Browse Feeds
     </a>
 </div>
