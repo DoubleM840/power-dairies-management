@@ -1,41 +1,102 @@
 {% extends 'admin_app/base.html' %}
-{% block page_title %}Add Collector Allocation{% endblock %}
+{% block page_title %}Allocate Collector{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:allocate_collectors' %}">Collectors</a></li>
+                <li class="breadcrumb-item active">Add Allocation</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-user-plus text-primary me-2"></i>Allocate Collector</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
         <div class="card-custom">
-            <div class="card-header"><i class="fas fa-user-plus me-2"></i>Allocate Collector</div>
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-2"></i>New Allocation
+            </div>
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
+                    
                     <div class="mb-3">
-                        <label class="form-label">Select Collector</label>
+                        <label class="form-label fw-bold">Collector <span class="text-danger">*</span></label>
                         <select name="collector" class="form-select" required>
-                            <option value="">Choose Collector</option>
+                            <option value="">Select Collector</option>
                             {% for collector in collectors %}
-                            <option value="{{ collector.id }}">{{ collector.username }} ({{ collector.first_name }} {{ collector.last_name }})</option>
+                                <option value="{{ collector.id }}">
+                                    {{ collector.username }} - {{ collector.first_name }} {{ collector.last_name }}
+                                </option>
                             {% endfor %}
                         </select>
+                        <small class="text-muted">Only approved collectors are shown</small>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Select Farmer</label>
+                        <label class="form-label fw-bold">Farmer <span class="text-danger">*</span></label>
                         <select name="farmer" class="form-select" required>
-                            <option value="">Choose Farmer</option>
+                            <option value="">Select Farmer</option>
                             {% for farmer in farmers %}
-                            <option value="{{ farmer.id }}">{{ farmer.username }} ({{ farmer.first_name }} {{ farmer.last_name }})</option>
+                                <option value="{{ farmer.id }}">
+                                    {{ farmer.username }} - {{ farmer.first_name }} {{ farmer.last_name }}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Area</label>
-                        <input type="text" name="area" class="form-control" placeholder="e.g., Zone A, Village X" required>
+                        <label class="form-label fw-bold">Area/Location <span class="text-danger">*</span></label>
+                        <input type="text" name="area" class="form-control" placeholder="e.g., North Region, Zone A" required>
                     </div>
-                    <button type="submit" class="btn btn-primary-custom text-white">
-                        <i class="fas fa-save me-2"></i>Allocate
-                    </button>
-                    <a href="{% url 'admin_app:allocate_collectors' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Each collector-farmer pair can only have one active allocation. If you try to allocate an existing pair, it will be reactivated instead.
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'admin_app:allocate_collectors' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary-custom text-white">
+                            <i class="fas fa-save me-2"></i>Create Allocation
+                        </button>
+                    </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card-custom">
+            <div class="card-header">
+                <i class="fas fa-lightbulb me-2"></i>Tips
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Assign collectors based on geographic proximity
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        One collector can serve multiple farmers
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Both collector and farmer will be notified
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Use the area field to specify zones
+                    </li>
+                </ul>
             </div>
         </div>
     </div>

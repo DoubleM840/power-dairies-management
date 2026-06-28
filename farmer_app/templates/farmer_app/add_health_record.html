@@ -3,32 +3,48 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-lg-8">
         <div class="card-custom">
-            <div class="card-header"><i class="fas fa-heartbeat me-2"></i>Add Health Record for {{ cow.tag }}</div>
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-notes-medical text-primary me-2"></i>
+                    Add Health Record for {{ cow.name|default:cow.tag }}
+                </h5>
+            </div>
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
+                    
                     <div class="mb-3">
-                        <label class="form-label">Date</label>
+                        <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
                         <input type="date" name="date" class="form-control" required>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3" required></textarea>
+                        <label class="form-label fw-semibold">Description / Diagnosis <span class="text-danger">*</span></label>
+                        <textarea name="description" class="form-control" rows="3" required placeholder="Describe the condition or checkup..."></textarea>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Treatment</label>
-                        <textarea name="treatment" class="form-control" rows="2"></textarea>
+                        <label class="form-label fw-semibold">Treatment Given</label>
+                        <textarea name="treatment" class="form-control" rows="3" placeholder="Medications, procedures, etc."></textarea>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Vet Name</label>
-                        <input type="text" name="vet_name" class="form-control">
+                        <label class="form-label fw-semibold">Veterinarian Name</label>
+                        <input type="text" name="vet_name" class="form-control" placeholder="Dr. ...">
                     </div>
-                    <button type="submit" class="btn btn-primary-custom text-white">
-                        <i class="fas fa-save me-2"></i>Save Record
-                    </button>
-                    <a href="{% url 'farmer_app:health_history' cow.id %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'farmer_app:health_history' cow.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary-custom text-white">
+                            <i class="fas fa-save me-2"></i>Save Record
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

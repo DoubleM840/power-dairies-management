@@ -3,60 +3,68 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0">My Feed Orders</h5>
-    <a href="{% url 'farmer_app:view_feeds' %}" class="btn btn-primary-custom text-white">
-        <i class="fas fa-plus me-2"></i>Order More Feeds
-    </a>
+    <h2 class="fw-bold"><i class="fas fa-truck text-primary me-2"></i>Order Tracking</h2>
 </div>
 
-<div class="card-custom">
-    <div class="card-body p-0">
-        <table class="table table-custom">
-            <thead>
-                <tr>
-                    <th>Feed</th>
-                    <th>Quantity</th>
-                    <th>Total Price</th>
-                    <th>Order Date</th>
-                    <th>Status</th>
-                    <th>Payment</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td><strong>{{ order.feed.name }}</strong></td>
-                    <td>{{ order.quantity }} {{ order.feed.unit }}</td>
-                    <td>KES {{ order.total_price }}</td>
-                    <td>{{ order.order_date|date:"M d, Y" }}</td>
-                    <td>
-                        <span class="badge badge-status
-                            {% if order.status == 'Delivered' %}bg-success
-                            {% elif order.status == 'Pending' %}bg-warning text-dark
-                            {% elif order.status == 'Cancelled' %}bg-danger
-                            {% else %}bg-info{% endif %}">
+{% if orders %}
+    {% for order in orders %}
+    <div class="card-custom mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h5 class="mb-1">{{ order.feed.name }}</h5>
+                    <p class="text-muted mb-0">{{ order.quantity }} {{ order.feed.unit }} &bull; KES {{ order.total_price }}</p>
+                    <small class="text-muted">Ordered: {{ order.order_date|date:"M d, Y H:i" }}</small>
+                </div>
+                
+                <div class="col-md-5">
+                    <!-- Visual Progress Bar -->
+                    <div class="d-flex justify-content-between text-center small text-muted mb-1">
+                        <span>Pending</span><span>Confirmed</span><span>Processing</span><span>Delivered</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        {% if order.status == 'Pending' %}
+                            <div class="progress-bar bg-warning" style="width: 10%"></div>
+                        {% elif order.status == 'Confirmed' %}
+                            <div class="progress-bar bg-info" style="width: 40%"></div>
+                        {% elif order.status == 'Processing' %}
+                            <div class="progress-bar bg-primary" style="width: 70%"></div>
+                        {% elif order.status == 'Delivered' %}
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        {% elif order.status == 'Cancelled' %}
+                            <div class="progress-bar bg-danger" style="width: 100%"></div>
+                        {% endif %}
+                    </div>
+                    <div class="text-center mt-2">
+                        <span class="badge bg-{% if order.status == 'Delivered' %}success{% elif order.status == 'Cancelled' %}danger{% elif order.status == 'Processing' %}primary{% elif order.status == 'Confirmed' %}info{% else %}warning text-dark{% endif %}">
                             {{ order.status }}
                         </span>
-                    </td>
-                    <td>
-                        <form method="post" action="{% url 'farmer_app:view_payments' %}" class="d-inline">
-                            {% csrf_token %}
-                            <input type="hidden" name="order_id" value="{{ order.id }}">
-                            <select name="method" class="form-select form-select-sm d-inline" style="width: 130px;">
-                                <option value="M-Pesa">M-Pesa</option>
-                                <option value="Milk Deduction">Milk Deduction</option>
-                            </select>
-                            <button class="btn btn-sm btn-success" type="submit">
-                                <i class="fas fa-pay"></i> Pay
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">No orders yet</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    </div>
+                </div>
+
+                <div class="col-md-3 text-end">
+                    {% if order.status == 'Delivered' %}
+                        <a href="{% url 'farmer_app:download_receipt' order.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-file-pdf me-1"></i> Download Receipt
+                        </a>
+                    {% else %}
+                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                            <i class="fas fa-clock me-1"></i> Awaiting Delivery
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+    {% endfor %}
+{% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="fas fa-box-open fa-3x mb-3"></i>
+        <h4>No orders yet</h4>
+        <p>Start by browsing our feeds and placing an order!</p>
+        <a href="{% url 'farmer_app:browse_feeds' %}" class="btn btn-primary-custom text-white">
+            <i class="fas fa-shopping-cart me-2"></i>Browse Feeds
+        </a>
+    </div>
+{% endif %}
 {% endblock %}

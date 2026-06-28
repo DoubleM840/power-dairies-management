@@ -1,42 +1,57 @@
 {% extends 'farmer_app/base.html' %}
-{% block page_title %}Edit Cow - {{ cow.tag }}{% endblock %}
+{% block page_title %}Edit Cow{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-lg-8">
         <div class="card-custom">
-            <div class="card-header"><i class="fas fa-edit me-2"></i>Edit: {{ cow.name|default:cow.tag }}</div>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-edit text-primary me-2"></i>Edit Cow: {{ cow.tag }}</h5>
+            </div>
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ cow.name }}">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Name</label>
+                            <input type="text" name="name" class="form-control" value="{{ cow.name|default:'' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Breed Type</label>
+                            <select name="breed_type" class="form-select" required>
+                                {% for value, label in cow.BREED_CHOICES %}
+                                    <option value="{{ value }}" {% if cow.breed_type == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Breed Type</label>
-                        <select name="breed_type" class="form-select">
-                            {% for value, label in cow.BREED_CHOICES %}
-                            <option value="{{ value }}" {% if cow.breed_type == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Age (Months)</label>
+                            <input type="number" name="age_months" class="form-control" value="{{ cow.age_months }}" min="1" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Health Status</label>
+                            <select name="health_status" class="form-select" required>
+                                {% for value, label in cow.HEALTH_STATUS %}
+                                    <option value="{{ value }}" {% if cow.health_status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Age (months)</label>
-                        <input type="number" name="age_months" class="form-control" value="{{ cow.age_months }}">
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'farmer_app:livestock_management' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary-custom text-white">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Health Status</label>
-                        <select name="health_status" class="form-select">
-                            {% for value, label in cow.HEALTH_STATUS %}
-                            <option value="{{ value }}" {% if cow.health_status == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary-custom text-white">
-                        <i class="fas fa-save me-2"></i>Update
-                    </button>
-                    <a href="{% url 'farmer_app:livestock_management' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </form>
             </div>
         </div>

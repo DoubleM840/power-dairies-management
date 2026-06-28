@@ -1,0 +1,159 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Order Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'admin_app:feed_orders_summary' %}">Orders</a></li>
+                    <li class="breadcrumb-item active">Order #{{ order.id }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-file-invoice text-primary me-2"></i>Order Details
+            </h1>
+        </div>
+        <a href="{% url 'admin_app:feed_orders_summary' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Orders
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card card-custom">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-info-circle me-2"></i>Order Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Farmer Details</h6>
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                                    {{ order.farmer.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold fs-5">{{ order.farmer.get_full_name|default:order.farmer.username }}</div>
+                                    <small class="text-muted">{{ order.farmer.email }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Order Status</h6>
+                            <div>
+                                {% if order.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="fas fa-clock me-2"></i>Pending</span>
+                                {% elif order.status == 'Confirmed' %}
+                                    <span class="badge bg-info text-white fs-6 px-3 py-2"><i class="fas fa-check-circle me-2"></i>Confirmed</span>
+                                {% elif order.status == 'Processing' %}
+                                    <span class="badge bg-primary text-white fs-6 px-3 py-2"><i class="fas fa-cog fa-spin me-2"></i>Processing</span>
+                                {% elif order.status == 'Delivered' %}
+                                    <span class="badge bg-success text-white fs-6 px-3 py-2"><i class="fas fa-check-double me-2"></i>Delivered</span>
+                                {% elif order.status == 'Cancelled' %}
+                                    <span class="badge bg-danger text-white fs-6 px-3 py-2"><i class="fas fa-times-circle me-2"></i>Cancelled</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-muted mt-2 mb-0">
+                                <small>Order placed: {{ order.order_date|date:"M d, Y H:i" }}</small>
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6 class="text-muted mb-3">Feed Details</h6>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted">Feed Name:</td>
+                                    <td class="fw-bold">{{ order.feed.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Category:</td>
+                                    <td>{{ order.feed.category|title }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Quantity:</td>
+                                    <td><strong>{{ order.quantity }} {{ order.feed.unit }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Unit Price:</td>
+                                    <td>KES {{ order.feed.price|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Total Price:</td>
+                                    <td class="fs-4 fw-bold text-success">KES {{ order.total_price|floatformat:2 }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-custom">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-cogs me-2"></i>Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if order.status == 'Pending' %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'admin_app:confirm_feed_order' order.id %}" 
+                           class="btn btn-success btn-lg"
+                           onclick="return confirm('Confirm this order?')">
+                            <i class="fas fa-check me-2"></i>Confirm Order
+                        </a>
+                        <a href="{% url 'admin_app:reject_feed_order' order.id %}" 
+                           class="btn btn-danger btn-lg"
+                           onclick="return confirm('Reject this order?')">
+                            <i class="fas fa-times me-2"></i>Reject Order
+                        </a>
+                    </div>
+                    {% elif order.status == 'Confirmed' %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Order is confirmed and ready for processing.
+                    </div>
+                    {% elif order.status == 'Processing' %}
+                    <div class="alert alert-primary mb-0">
+                        <i class="fas fa-cog fa-spin me-2"></i>
+                        Order is currently being processed.
+                    </div>
+                    {% elif order.status == 'Delivered' %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-double me-2"></i>
+                        Order has been successfully delivered.
+                    </div>
+                    {% elif order.status == 'Cancelled' %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-times-circle me-2"></i>
+                        This order has been cancelled.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+}
+.card-custom {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+}
+</style>
+{% endblock %}

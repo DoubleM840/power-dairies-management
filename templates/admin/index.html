@@ -1,0 +1,60 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{% trans 'Dashboard Overview' %}</h1>
+    
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div style="background: #417690; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0; font-size: 32px;">{{ total_farmers }}</h2>
+            <p style="margin: 5px 0 0 0;">Total Farmers</p>
+        </div>
+        <div style="background: #20aa76; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0; font-size: 32px;">{{ total_collectors }}</h2>
+            <p style="margin: 5px 0 0 0;">Active Collectors</p>
+        </div>
+        <div style="background: #f0ad4e; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0; font-size: 32px;">{{ pending_collectors }}</h2>
+            <p style="margin: 5px 0 0 0;">Pending Approvals</p>
+        </div>
+        <div style="background: #ba479c; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0; font-size: 32px;">{{ total_cows }}</h2>
+            <p style="margin: 5px 0 0 0;">Total Livestock</p>
+        </div>
+        <div style="background: #007bff; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0; font-size: 32px;">{{ today_milk|floatformat:1 }}L</h2>
+            <p style="margin: 5px 0 0 0;">Today's Milk</p>
+        </div>
+        <div style="background: #dc3545; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0; font-size: 32px;">{{ pending_payments }}</h2>
+            <p style="margin: 5px 0 0 0;">Pending Payments</p>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h2>Quick Actions</h2>
+        <ul style="list-style: none; padding: 0;">
+            <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                <a href="/admin-app/milk-approval/" style="color: #417690; text-decoration: none;">
+                    <strong>→ Go to Custom Admin Dashboard</strong> - Milk Approval & More
+                </a>
+            </li>
+            <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                <a href="/admin-app/approve-collectors/" style="color: #417690; text-decoration: none;">
+                    <strong>→ Approve Collectors</strong> - {{ pending_collectors }} pending
+                </a>
+            </li>
+            <li style="padding: 10px 0;">
+                <a href="/admin-app/livestock/" style="color: #417690; text-decoration: none;">
+                    <strong>→ View All Livestock</strong> - {{ total_cows }} cows
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    {{ block.super }}
+</div>
+{% endblock %}

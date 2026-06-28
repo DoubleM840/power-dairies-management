@@ -9,34 +9,50 @@ urlpatterns = [
     path('dashboard/', views.admin_dashboard, name='dashboard'),
     path('notifications/', views.notifications, name='notifications'),
     
+    # Collector Approval
+    path('approve-collectors/', views.approve_collectors, name='approve_collectors'),
+    path('approve-collector/<int:user_id>/', views.approve_collector, name='approve_collector'),
+    path('reject-collector/<int:user_id>/', views.reject_collector, name='reject_collector'),
+    
     # User Management
     path('users/', views.manage_users, name='manage_users'),
     path('users/add/', views.add_user, name='add_user'),
     path('users/edit/<int:user_id>/', views.edit_user, name='edit_user'),
     path('users/delete/<int:user_id>/', views.delete_user, name='delete_user'),
-    path('users/toggle/<int:user_id>/', views.toggle_user_status, name='toggle_user_status'), # ADDED
+    path('users/toggle/<int:user_id>/', views.toggle_user_status, name='toggle_user_status'),
     
     # Milk Overview
     path('milk/', views.milk_overview, name='milk_overview'),
     path('milk/edit/<int:record_id>/', views.edit_milk_record, name='edit_milk_record'),
     path('milk/summary/', views.milk_summary, name='milk_summary'),
     
+    # Milk Approval (THIS WAS MISSING!)
+    path('milk-approval/', views.milk_approval, name='milk_approval'),
+    path('milk-approval/<int:record_id>/', views.approve_milk_record, name='approve_milk_record'),
+    
     # Rates
     path('rates/', views.manage_rates, name='manage_rates'),
     path('rates/add/', views.add_rate, name='add_rate'),
     path('rates/edit/<int:rate_id>/', views.edit_rate, name='edit_rate'),
+    path('update-fat-content/<int:record_id>/', views.update_fat_content, name='update_fat_content'),
     
-    # Payments (Separated into Feed Orders & Milk Payments)
+    # Payments
     path('payments/', views.manage_payments, name='manage_payments'),
     path('payments/approve/<int:payment_id>/', views.approve_payment, name='approve_payment'),
     path('payments/reject/<int:payment_id>/', views.reject_payment, name='reject_payment'),
+    path('update-order-status/<int:order_id>/', views.update_order_status, name='update_order_status'),
     
     # Feeds
     path('feeds/', views.manage_feeds, name='manage_feeds'),
     path('feeds/add/', views.add_feed, name='add_feed'),
     path('feeds/edit/<int:feed_id>/', views.edit_feed, name='edit_feed'),
     path('feeds/delete/<int:feed_id>/', views.delete_feed, name='delete_feed'),
+    
+    # Feed Order Management
     path('feeds/orders/', views.feed_orders_summary, name='feed_orders_summary'),
+    path('feeds/orders/<int:order_id>/view/', views.view_feed_order, name='view_feed_order'),
+    path('feeds/orders/<int:order_id>/confirm/', views.confirm_feed_order, name='confirm_feed_order'),
+    path('feeds/orders/<int:order_id>/reject/', views.reject_feed_order, name='reject_feed_order'),
     
     # Claims
     path('claims/', views.manage_claims, name='manage_claims'),
@@ -48,4 +64,8 @@ urlpatterns = [
     path('allocate-collectors/', views.allocate_collectors, name='allocate_collectors'),
     path('allocate-collectors/add/', views.add_allocation, name='add_allocation'),
     path('allocate-collectors/delete/<int:allocation_id>/', views.delete_allocation, name='delete_allocation'),
+    
+    # Livestock Oversight
+    path('livestock/', views.all_livestock, name='all_livestock'),
+    path('livestock/<int:cow_id>/health/', views.livestock_health, name='livestock_health'),
 ]

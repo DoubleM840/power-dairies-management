@@ -14,18 +14,26 @@ from decimal import Decimal
 import json
 
 
+# FIXED: Use 'profile' not 'farmer_profile'
 def farmer_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('accounts:login')  # FIXED: Added 'accounts:' namespace
+            return redirect('accounts:login')
+        
         try:
-            if request.user.profile.role != 'farmer':  # FIXED: Changed farmer_profile to profile
+            # Use 'profile' (matches your model's related_name)
+            profile = request.user.profile
+            if profile.role != 'farmer':
                 messages.error(request, 'Access denied. Farmers only.')
                 return redirect('accounts:login')
         except UserProfile.DoesNotExist:
+            messages.error(request, 'User profile not found.')
+            return redirect('accounts:login')
+        except AttributeError:
             messages.error(request, 'Access denied.')
             return redirect('accounts:login')
+            
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -83,7 +91,6 @@ def farmer_dashboard(request):
 def milk_records(request):
     records = MilkRecord.objects.filter(farmer=request.user).order_by('-date_collected')
     
-    # Chart data
     today = timezone.now().date()
     labels = []
     quantities = []
@@ -106,32 +113,45 @@ def milk_records(request):
     return render(request, 'farmer_app/milk_records.html', context)
 
 
-# ==================== FEEDS ====================
+# ==================== FEEDS (UPDATED WITH CATEGORIES) ====================
 @login_required
 @farmer_required
-def view_feeds(request):
-    feeds = Feed.objects.filter(is_active=True)
-    return render(request, 'farmer_app/view_feeds.html', {'feeds': feeds})
+def browse_feeds(request):
+    """Browse feeds with category filtering"""
+    category = request.GET.get('category', 'all')
+    
+    if category and category != 'all':
+        feeds = Feed.objects.filter(category=category, is_active=True)
+    else:
+        feeds = Feed.objects.filter(is_active=True)
+    
+    context = {
+        'feeds': feeds,
+        'current_category': category,
+        'total_feeds': feeds.count(),
+    }
+    return render(request, 'farmer_app/browse_feeds.html', context)
 
 
 @login_required
 @farmer_required
 def order_feed(request, feed_id):
-    feed = get_object_or_404(Feed, id=feed_id)
-    if request.method == 'POST':
-        quantity = int(request.POST.get('quantity', 1))
-        total_price = feed.price * quantity
-        
-        FeedOrder.objects.create(
-            farmer=request.user,
-            feed=feed,
-            quantity=quantity,
-            total_price=total_price,
-            status='Pending'
-        )
-        messages.success(request, f'Order placed for {quantity} {feed.unit} of {feed.name}.')
-        return redirect('farmer_app:my_orders')
-    return render(request, 'farmer_app/order_feed.html', {'feed': feed})
+    """Add feed to cart and redirect to checkout"""
+    feed = get_object_or_404(Feed, id=feed_id, is_active=True)
+    
+    # Get or create cart
+    cart, created = Cart.objects.get_or_create(farmer=request.user)
+    
+    # Add to cart or update quantity
+    cart_item, created = CartItem.objects.get_or_create(cart=cart, feed=feed)
+    if not created:
+        cart_item.quantity += 1
+    else:
+        cart_item.quantity = 1
+    cart_item.save()
+    
+    messages.success(request, f'{feed.name} added to cart. Proceed to checkout.')
+    return redirect('farmer_app:checkout_cart')
 
 
 @login_required
@@ -176,11 +196,59 @@ def remove_from_cart(request, item_id):
 @farmer_required
 def checkout_cart(request):
     cart = get_object_or_404(Cart, farmer=request.user)
+    
+    if cart.items.count() == 0:
+        messages.error(request, 'Your cart is empty!')
+        return redirect('farmer_app:view_cart')
+
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method')
+        mpesa_phone = request.POST.get('mpesa_phone', '')
+        use_test_mode = request.POST.get('use_test_mode') == 'true'
+        total_price = cart.total_price
         
+        # If using test mode or milk deduction, handle normally
+        if use_test_mode and payment_method == 'mpesa':
+            # Simulated test payment
+            import random
+            receipt = f"MPESA{random.randint(100000, 999999)}"
+            
+            Payment.objects.create(
+                user=request.user,
+                payment_type='feed_order',
+                amount=total_price,
+                method='M-Pesa (Test)',
+                description=f'Test M-Pesa payment for feed order',
+                status='Completed',
+                receipt_number=receipt
+            )
+            
+            messages.success(
+                request, 
+                f'Test M-Pesa Payment of KES {total_price} successful! Receipt: {receipt}. '
+                f'Your order is being processed.'
+            )
+            
+        elif payment_method == 'milk_deduction':
+            # Milk Deduction Logic
+            Payment.objects.create(
+                user=request.user,
+                payment_type='milk_deduction',
+                amount=total_price,
+                method='Milk Deduction',
+                description=f'Feed order cost deducted from milk earnings',
+                status='Pending'
+            )
+            
+            messages.success(
+                request, 
+                f'KES {total_price} will be deducted from your milk earnings. '
+                f'Your order is pending admin approval.'
+            )
+        
+        # For real M-Pesa, the payment is handled via AJAX in the template
+        # Create orders here
         for item in cart.items.all():
-            # Create feed order
             FeedOrder.objects.create(
                 farmer=request.user,
                 feed=item.feed,
@@ -188,19 +256,52 @@ def checkout_cart(request):
                 total_price=item.total_price,
                 status='Pending'
             )
-            # Reduce stock
             item.feed.stock_quantity -= item.quantity
             item.feed.save()
         
         # Clear cart
         cart.items.all().delete()
-        messages.success(request, 'Order placed successfully! Choose payment method.')
+        
         return redirect('farmer_app:my_orders')
     
     return render(request, 'farmer_app/checkout_cart.html', {'cart': cart})
 
 
 # ==================== PAYMENTS ====================
+@login_required
+@farmer_required
+def farmer_earnings(request):
+    """View farmer's milk earnings and deductions"""
+    # Calculate total milk earnings
+    milk_records = MilkRecord.objects.filter(farmer=request.user, status='Approved')
+    total_milk_liters = milk_records.aggregate(total=Sum('quantity'))['total'] or 0
+    
+    # Get current rate (assume KES 50 per liter for now)
+    rate = 50
+    gross_earnings = total_milk_liters * rate
+    
+    # Calculate deductions (feed orders paid via milk deduction)
+    deductions = Payment.objects.filter(
+        user=request.user,
+        payment_type='milk_deduction',
+        status__in=['Pending', 'Approved']
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    net_earnings = gross_earnings - deductions
+    
+    # Get payment history
+    payments = Payment.objects.filter(user=request.user).order_by('-date_created')
+    
+    context = {
+        'total_milk_liters': total_milk_liters,
+        'gross_earnings': gross_earnings,
+        'deductions': deductions,
+        'net_earnings': net_earnings,
+        'payments': payments,
+        'rate_per_liter': rate,
+    }
+    return render(request, 'farmer_app/farmer_earnings.html', context)
+
 @login_required
 @farmer_required
 def view_payments(request):
@@ -232,6 +333,7 @@ def view_payments(request):
 @login_required
 @farmer_required
 def download_receipt(request, payment_id):
+    """Generate PDF receipt for a payment"""
     payment = get_object_or_404(Payment, id=payment_id, user=request.user)
     
     from reportlab.lib.pagesizes import letter
@@ -252,21 +354,21 @@ def download_receipt(request, payment_id):
     
     p.line(1*inch, height - 1.6*inch, 7*inch, height - 1.6*inch)
     
-    # Details
+    # Receipt Details
     p.setFont("Helvetica", 12)
     y = height - 2.2*inch
     
     details = [
-        (f"Receipt Number:", payment.receipt_number or "N/A"),
-        (f"Date:", payment.date_created.strftime("%B %d, %Y")),
-        (f"Customer:", f"{request.user.first_name} {request.user.last_name}"),
-        (f"Username:", request.user.username),
-        (f"Payment Type:", payment.get_payment_type_display()),
-        (f"Method:", payment.method or "N/A"),
-        (f"Description:", payment.description or "N/A"),
-        (f"Status:", payment.status),
+        ("Receipt Number:", payment.receipt_number or f"RCP-{payment.id:06d}"),
+        ("Date:", payment.date_created.strftime("%B %d, %Y at %I:%M %p")),
+        ("Customer:", f"{request.user.first_name} {request.user.last_name}"),
+        ("Username:", request.user.username),
+        ("Payment Type:", payment.get_payment_type_display()),
+        ("Method:", payment.method or "N/A"),
+        ("Description:", payment.description or "N/A"),
+        ("Status:", payment.status),
         ("", ""),
-        (f"AMOUNT PAID:", f"KES {payment.amount}"),
+        ("AMOUNT PAID:", f"KES {payment.amount}"),
     ]
     
     for label, value in details:
@@ -287,7 +389,7 @@ def download_receipt(request, payment_id):
     
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="receipt_{payment.receipt_number}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="receipt_{payment.receipt_number or payment.id}.pdf"'
     return response
 
 
@@ -326,7 +428,7 @@ def livestock_management(request):
 @farmer_required
 def add_cow(request):
     if request.method == 'POST':
-        Cow.objects.create(
+        cow = Cow.objects.create(
             farmer=request.user,
             tag=request.POST.get('tag'),
             breed_type=request.POST.get('breed_type'),
@@ -334,6 +436,17 @@ def add_cow(request):
             age_months=request.POST.get('age_months', 12),
             health_status='Healthy'
         )
+        
+        # Notify all admins
+        from django.contrib.auth.models import User
+        admin_users = User.objects.filter(profile__role='admin')
+        for admin in admin_users:
+            Notification.objects.create(
+                user=admin,
+                title='New Livestock Added',
+                message=f'Farmer {request.user.username} added a new cow: {cow.name or cow.tag} ({cow.breed_type})'
+            )
+        
         messages.success(request, 'Cow added successfully.')
         return redirect('farmer_app:livestock_management')
     return render(request, 'farmer_app/add_cow.html')
@@ -344,11 +457,24 @@ def add_cow(request):
 def edit_cow(request, cow_id):
     cow = get_object_or_404(Cow, id=cow_id, farmer=request.user)
     if request.method == 'POST':
+        old_health = cow.health_status
         cow.name = request.POST.get('name')
         cow.breed_type = request.POST.get('breed_type')
         cow.age_months = request.POST.get('age_months')
         cow.health_status = request.POST.get('health_status')
         cow.save()
+        
+        # Notify admins if health status changed
+        if old_health != cow.health_status:
+            from django.contrib.auth.models import User
+            admin_users = User.objects.filter(profile__role='admin')
+            for admin in admin_users:
+                Notification.objects.create(
+                    user=admin,
+                    title='Livestock Health Updated',
+                    message=f'Farmer {request.user.username} updated health status of {cow.name or cow.tag} to {cow.health_status}'
+                )
+        
         messages.success(request, 'Cow updated successfully.')
         return redirect('farmer_app:livestock_management')
     return render(request, 'farmer_app/edit_cow.html', {'cow': cow})
@@ -367,17 +493,27 @@ def health_history(request, cow_id):
 def add_health_record(request, cow_id):
     cow = get_object_or_404(Cow, id=cow_id, farmer=request.user)
     if request.method == 'POST':
-        HealthRecord.objects.create(
+        record = HealthRecord.objects.create(
             cow=cow,
             date=request.POST.get('date'),
             description=request.POST.get('description'),
             treatment=request.POST.get('treatment'),
             vet_name=request.POST.get('vet_name')
         )
+        
+        # Notify admins
+        from django.contrib.auth.models import User
+        admin_users = User.objects.filter(profile__role='admin')
+        for admin in admin_users:
+            Notification.objects.create(
+                user=admin,
+                title='New Health Record Added',
+                message=f'Farmer {request.user.username} added a health record for {cow.name or cow.tag}: {record.description[:50]}...'
+            )
+        
         messages.success(request, 'Health record added.')
         return redirect('farmer_app:health_history', cow_id=cow.id)
     return render(request, 'farmer_app/add_health_record.html', {'cow': cow})
-
 
 # ==================== CLAIMS ====================
 @login_required
@@ -422,5 +558,5 @@ def view_notifications(request):
 @login_required
 @farmer_required
 def view_profile(request):
-    profile = request.user.profile  # FIXED: Changed farmer_profile to profile
+    profile = request.user.profile  # FIXED: Changed from 'farmer_profile' to 'profile'
     return render(request, 'farmer_app/profile.html', {'profile': profile})

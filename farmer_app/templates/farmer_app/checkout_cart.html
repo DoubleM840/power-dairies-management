@@ -3,28 +3,195 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-lg-8">
         <div class="card-custom">
-            <div class="card-header"><i class="fas fa-receipt me-2"></i>Order Summary</div>
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Checkout & Payment</h4>
+            </div>
             <div class="card-body p-4">
-                {% for item in cart.items.all %}
-                <div class="d-flex justify-content-between py-2 border-bottom">
-                    <span>{{ item.feed.name }} x{{ item.quantity }}</span>
-                    <strong>KES {{ item.total_price }}</strong>
+                <!-- Order Summary -->
+                <div class="alert alert-info mb-4">
+                    <h5 class="mb-2"><i class="fas fa-info-circle me-2"></i>Order Summary</h5>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Items in cart:</span>
+                        <strong>{{ cart.items.count }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Total Amount:</span>
+                        <strong class="text-primary fs-4">KES {{ cart.total_price }}</strong>
+                    </div>
                 </div>
-                {% endfor %}
-                <div class="d-flex justify-content-between py-3 fw-bold fs-5">
-                    <span>Total:</span>
-                    <span>KES {{ cart.total_price }}</span>
+
+                <!-- Test Mode Toggle -->
+                <div class="form-check form-switch mb-4 p-3 border rounded bg-light">
+                    <input class="form-check-input" type="checkbox" id="testModeToggle" checked>
+                    <label class="form-check-label fw-bold" for="testModeToggle">
+                        Use Test Mode (Simulated M-Pesa)
+                    </label>
+                    <small class="text-muted d-block mt-1">
+                        Enable this to test without real M-Pesa transactions
+                    </small>
                 </div>
-                <form method="post">
+
+                <form method="post" id="checkoutForm">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-primary-custom text-white w-100 btn-lg mt-3">
-                        <i class="fas fa-check me-2"></i>Confirm Order
-                    </button>
+                    <input type="hidden" name="use_test_mode" id="useTestMode" value="false">
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Select Payment Method</label>
+                        
+                        <!-- M-Pesa Option -->
+                        <div class="form-check p-3 border rounded mb-3">
+                            <input class="form-check-input" type="radio" name="payment_method" id="mpesa" value="mpesa" checked onchange="toggleMpesaField(true)">
+                            <label class="form-check-label w-100" for="mpesa">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="text-success">
+                                        <i class="fas fa-mobile-alt me-2"></i>Pay with M-Pesa
+                                    </strong>
+                                    <span class="badge bg-success">STK Push</span>
+                                </div>
+                                <small class="text-muted">Real-time payment via M-Pesa STK Push</small>
+                            </label>
+                        </div>
+
+                        <!-- M-Pesa Phone Number Field -->
+                        <div id="mpesaPhoneField" class="mb-3">
+                            <label class="form-label">M-Pesa Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" name="mpesa_phone" id="mpesaPhone" class="form-control" placeholder="2547XXXXXXXX" value="{{ request.user.profile.phone|default:'' }}" required>
+                            <small class="text-muted">Enter your M-Pesa registered number (e.g., 254712345678)</small>
+                        </div>
+
+                        <!-- Milk Deduction Option -->
+                        <div class="form-check p-3 border rounded">
+                            <input class="form-check-input" type="radio" name="payment_method" id="deduction" value="milk_deduction" onchange="toggleMpesaField(false)">
+                            <label class="form-check-label w-100" for="deduction">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="text-primary">
+                                        <i class="fas fa-tint me-2"></i>Milk Earnings Deduction
+                                    </strong>
+                                    <span class="badge bg-primary">Pending Approval</span>
+                                </div>
+                                <small class="text-muted">Cost will be deducted from your pending milk sales</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Note:</strong> By completing this order, you agree to the payment terms selected above.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'farmer_app:view_cart' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Cart
+                        </a>
+                        <button type="submit" class="btn btn-primary-custom text-white flex-grow-1" id="submitBtn">
+                            <i class="fas fa-lock me-2"></i>Complete Order - KES {{ cart.total_price }}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Test mode toggle
+document.getElementById('testModeToggle').addEventListener('change', function() {
+    document.getElementById('useTestMode').value = this.checked ? 'true' : 'false';
+});
+
+// Initialize - UNCHECK test mode by default
+document.addEventListener('DOMContentLoaded', function() {
+    const testModeToggle = document.getElementById('testModeToggle');
+    const useTestModeInput = document.getElementById('useTestMode');
+    
+    // Start with test mode OFF (unchecked)
+    testModeToggle.checked = false;
+    useTestModeInput.value = 'false';
+    
+    toggleMpesaField(true);
+});
+
+function toggleMpesaField(show) {
+    const field = document.getElementById('mpesaPhoneField');
+    const phoneInput = document.getElementById('mpesaPhone');
+    if (show) {
+        field.style.display = 'block';
+        phoneInput.required = true;
+    } else {
+        field.style.display = 'none';
+        phoneInput.required = false;
+    }
+}
+
+// Handle form submission for M-Pesa
+document.getElementById('checkoutForm').addEventListener('submit', async function(e) {
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    const useTestMode = document.getElementById('useTestMode').value === 'true';
+    
+    if (paymentMethod === 'mpesa' && !useTestMode) {
+        e.preventDefault();
+        
+        const phone = document.getElementById('mpesaPhone').value;
+        const amount = '{{ cart.total_price }}';
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('phone_number', phone);
+            formData.append('amount', amount);
+            formData.append('use_test_mode', 'false');
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            
+            const response = await fetch('{% url "mpesa:initiate_payment" %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Show waiting message
+                alert('STK Push sent! Please enter your M-Pesa PIN on your phone.');
+                
+                // Poll for payment status
+                const checkInterval = setInterval(async () => {
+                    const statusResponse = await fetch(`{% url "mpesa:check_status" 'CHECKOUT_REQUEST_ID' %}`.replace('CHECKOUT_REQUEST_ID', data.checkout_request_id));
+                    const statusData = await statusResponse.json();
+                    
+                    if (statusData.status === 'COMPLETED') {
+                        clearInterval(checkInterval);
+                        window.location.href = '{% url "farmer_app:my_orders" %}';
+                    } else if (statusData.status === 'FAILED' || statusData.status === 'CANCELLED') {
+                        clearInterval(checkInterval);
+                        alert('Payment failed or was cancelled. Please try again.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Complete Order - KES {{ cart.total_price }}';
+                    }
+                }, 3000);
+                
+            } else {
+                alert('Error: ' + data.error);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Complete Order - KES {{ cart.total_price }}';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Complete Order - KES {{ cart.total_price }}';
+        }
+    }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleMpesaField(true);
+});
+</script>
 {% endblock %}

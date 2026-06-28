@@ -1,15 +1,31 @@
 {% extends 'farmer_app/base.html' %}
-{% block page_title %}Health History - {{ cow.tag }}{% endblock %}
+{% block page_title %}Health History{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h5 class="mb-0">{{ cow.name|default:"Cow" }} ({{ cow.tag }})</h5>
-        <small class="text-muted">{{ cow.breed_type }} | Status: {{ cow.health_status }}</small>
+        <h2 class="fw-bold mb-1">
+            <i class="fas fa-notes-medical text-primary me-2"></i>
+            Health History: {{ cow.name|default:cow.tag }}
+        </h2>
+        <p class="text-muted mb-0">
+            <span class="badge bg-light text-dark me-2">{{ cow.breed_type }}</span>
+            Tag: <strong>{{ cow.tag }}</strong> | 
+            Status: 
+            {% if cow.health_status == 'Healthy' %}
+                <span class="badge bg-success">Healthy</span>
+            {% elif cow.health_status == 'Sick' %}
+                <span class="badge bg-danger">Sick</span>
+            {% elif cow.health_status == 'Under Treatment' %}
+                <span class="badge bg-warning">Under Treatment</span>
+            {% else %}
+                <span class="badge bg-info">Recovered</span>
+            {% endif %}
+        </p>
     </div>
     <div>
         <a href="{% url 'farmer_app:add_health_record' cow.id %}" class="btn btn-primary-custom text-white">
-            <i class="fas fa-plus me-2"></i>Add Record
+            <i class="fas fa-plus me-2"></i>Add Health Record
         </a>
         <a href="{% url 'farmer_app:livestock_management' %}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back
@@ -18,29 +34,44 @@
 </div>
 
 <div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history me-2"></i>Medical Records</span>
+        <span class="badge bg-primary">{{ records.count }} records</span>
+    </div>
     <div class="card-body p-0">
-        <table class="table table-custom">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Treatment</th>
-                    <th>Vet</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in records %}
-                <tr>
-                    <td>{{ record.date }}</td>
-                    <td>{{ record.description }}</td>
-                    <td>{{ record.treatment|default:"-" }}</td>
-                    <td>{{ record.vet_name|default:"-" }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-center text-muted py-4">No health records</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% if records %}
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Description</th>
+                        <th>Treatment</th>
+                        <th>Veterinarian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="ps-4"><strong>{{ record.date|date:"M d, Y" }}</strong></td>
+                        <td>{{ record.description }}</td>
+                        <td>{{ record.treatment|default:"-" }}</td>
+                        <td>{{ record.vet_name|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-notes-medical fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Health Records</h4>
+            <p class="text-muted">Add the first health record for this cow.</p>
+            <a href="{% url 'farmer_app:add_health_record' cow.id %}" class="btn btn-primary-custom text-white mt-2">
+                <i class="fas fa-plus me-2"></i>Add First Record
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

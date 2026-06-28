@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-dairy-management-secret-key-2024'
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 # CSRF trusted origins - Add your Railway URL
@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'admin_app',
     'collector_app',
     'farmer_app',
+    'mpesa',
 ]
 
 MIDDLEWARE = [
@@ -114,8 +115,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_URL = 'login'
-
+# Authentication settings
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'accounts:dashboard'  # Where to go after successful login
+LOGOUT_REDIRECT_URL = 'accounts:login'     # Where to go after logout
 # Email settings for claims
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
@@ -128,4 +131,20 @@ SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on every request
 # Optional: Set session cookie to be more secure
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
 SESSION_COOKIE_SECURE = False  # Set to True if using HTTPS in production
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False
+
+# M-Pesa Daraja API Configuration
+MPESA_CONFIG = {
+    'SANDBOX': True,  # Set to False for production
+    'CONSUMER_KEY': 'YbTvHLd5umXel5IdYeGcjuBvEOtzXGqoZdLTFlwz3nmFnEPh',
+    'CONSUMER_SECRET': 'jtblbRUPU2PrnVpJWj6XUtJshSfEvYoZL9Y7fQBC2TjUdQ7gRnNJTj72yDGoXjND',
+    'SHORTCODE': '174379',  # Test shortcode for sandbox
+    'PASSKEY': 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',  # Sandbox passkey
+    'INITIATOR_NAME': 'testapi',
+    'SECURITY_CREDENTIAL': 'test_credential',
+    'C2B_SHORTCODE': '174379',
+    'C2B_SHORT_CODE': '174379',
+    'CALLBACK_URL': 'https://sandpit-depth-squatting.ngrok-free.dev/mpesa/callback/', # Update with your domain
+    'ACCOUNT_REFERENCE': 'Power Dairies',
+    'TRANSACTION_DESC': 'Payment for feed order',
+}

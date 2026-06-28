@@ -1,23 +1,39 @@
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
 *.egg
 
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
 # Django
-db.sqlite3
-db.sqlite3-journal
 *.log
 local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+/static_root
 
 # Environment variables
 .env
@@ -34,23 +50,27 @@ local_settings.py
 # OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Media files (uploaded by users)
-media/
-
-# Static files (collected)
-staticfiles/
-static_collected/
+# Migrations (optional - uncomment if you want to ignore)
+# */migrations/*.py
+# !*/migrations/__init__.py
 
 # Coverage
 htmlcov/
 .tox/
 .coverage
+.coverage.*
 .cache
 nosetests.xml
 coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
 
-# Migrations (optional - uncomment if you want to ignore migrations)
-# */migrations/*.py
-# !*/migrations/__init__.py
+# Ngrok
+ngrok.exe
+ngrok.yml
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,5 +1,5 @@
-{% load static %}
 {% extends 'admin_app/base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="container-fluid px-0">
@@ -135,9 +135,30 @@
                         </td>
                         <td class="text-end pe-3">
                             <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-primary" title="View Details"><i class="fas fa-eye"></i></button>
-                                <button type="button" class="btn btn-outline-success" title="Approve"><i class="fas fa-check"></i></button>
-                                <button type="button" class="btn btn-outline-danger" title="Reject"><i class="fas fa-times"></i></button>
+                                <!-- View Button -->
+                                <a href="{% url 'admin_app:view_feed_order' order.id %}" 
+                                   class="btn btn-outline-primary" 
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                <!-- Approve Button (only for Pending) -->
+                                {% if order.status == 'Pending' %}
+                                <a href="{% url 'admin_app:confirm_feed_order' order.id %}" 
+                                   class="btn btn-outline-success" 
+                                   title="Confirm Order"
+                                   onclick="return confirm('Confirm this order?')">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                
+                                <!-- Reject Button (only for Pending) -->
+                                <a href="{% url 'admin_app:reject_feed_order' order.id %}" 
+                                   class="btn btn-outline-danger" 
+                                   title="Reject Order"
+                                   onclick="return confirm('Reject this order?')">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

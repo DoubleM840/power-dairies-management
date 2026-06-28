@@ -1,0 +1,183 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}All Livestock{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">All Livestock</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-horse text-primary me-2"></i>All Livestock</h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Total Cows</p>
+                    <h3 class="mb-0">{{ total_cows }}</h3>
+                </div>
+                <div class="icon blue"><i class="fas fa-horse fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Healthy</p>
+                    <h3 class="mb-0 text-success">{{ healthy_count }}</h3>
+                </div>
+                <div class="icon green"><i class="fas fa-heart fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Sick</p>
+                    <h3 class="mb-0 text-danger">{{ sick_count }}</h3>
+                </div>
+                <div class="icon red"><i class="fas fa-virus fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted mb-1">Under Treatment</p>
+                    <h3 class="mb-0 text-warning">{{ treatment_count }}</h3>
+                </div>
+                <div class="icon orange"><i class="fas fa-medkit fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-custom mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Filter by Farmer</label>
+                <select name="farmer" class="form-select">
+                    <option value="">All Farmers</option>
+                    {% for farmer in farmers %}
+                        <option value="{{ farmer.id }}" {% if farmer_filter == farmer.id|stringformat:"s" %}selected{% endif %}>
+                            {{ farmer.username }} ({{ farmer.first_name }} {{ farmer.last_name }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Filter by Breed</label>
+                <select name="breed" class="form-select">
+                    <option value="">All Breeds</option>
+                    {% for breed in breeds %}
+                        <option value="{{ breed }}" {% if breed_filter == breed %}selected{% endif %}>{{ breed }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Filter by Health</label>
+                <select name="health" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Healthy" {% if health_filter == 'Healthy' %}selected{% endif %}>Healthy</option>
+                    <option value="Sick" {% if health_filter == 'Sick' %}selected{% endif %}>Sick</option>
+                    <option value="Under Treatment" {% if health_filter == 'Under Treatment' %}selected{% endif %}>Under Treatment</option>
+                    <option value="Recovered" {% if health_filter == 'Recovered' %}selected{% endif %}>Recovered</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary-custom text-white w-100">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Livestock Table -->
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2"></i>All Cows</span>
+        <span class="badge bg-primary">{{ total_cows }} total</span>
+    </div>
+    <div class="card-body p-0">
+        {% if cows %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Tag</th>
+                        <th>Name</th>
+                        <th>Farmer</th>
+                        <th>Breed</th>
+                        <th>Age</th>
+                        <th>Health Status</th>
+                        <th>Date Added</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cow in cows %}
+                    <tr>
+                        <td class="ps-4"><strong>{{ cow.tag }}</strong></td>
+                        <td>{{ cow.name|default:"-" }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2"
+                                     style="width: 32px; height: 32px; font-size: 12px; font-weight: bold; background: var(--primary-color);">
+                                    {{ cow.farmer.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ cow.farmer.username }}</div>
+                                    <small class="text-muted">{{ cow.farmer.first_name }} {{ cow.farmer.last_name }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-dark">{{ cow.breed_type }}</span></td>
+                        <td>{{ cow.age_months }} mo</td>
+                        <td>
+                            {% if cow.health_status == 'Healthy' %}
+                                <span class="badge bg-success">Healthy</span>
+                            {% elif cow.health_status == 'Sick' %}
+                                <span class="badge bg-danger">Sick</span>
+                            {% elif cow.health_status == 'Under Treatment' %}
+                                <span class="badge bg-warning text-dark">Treatment</span>
+                            {% else %}
+                                <span class="badge bg-info">Recovered</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ cow.date_added|date:"M d, Y" }}</small></td>
+                        <td class="text-center">
+                            <a href="{% url 'admin_app:livestock_health' cow.id %}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               title="View Health Records">
+                                <i class="fas fa-notes-medical"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-horse fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Livestock Found</h4>
+            <p class="text-muted">No cows match your current filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Health Records - {{ cow.tag }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:all_livestock' %}">All Livestock</a></li>
+                <li class="breadcrumb-item active">{{ cow.tag }}</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-notes-medical text-primary me-2"></i>Health Records</h1>
+    </div>
+</div>
+
+<!-- Cow Info Card -->
+<div class="card-custom mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-3"
+                         style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; background: var(--primary-color);">
+                        {{ cow.tag|first|upper }}
+                    </div>
+                    <div>
+                        <h3 class="mb-1">{{ cow.name|default:cow.tag }}</h3>
+                        <p class="text-muted mb-0">
+                            <span class="badge bg-light text-dark me-2">{{ cow.breed_type }}</span>
+                            Tag: <strong>{{ cow.tag }}</strong> | 
+                            Age: {{ cow.age_months }} months
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="mb-2">
+                    <small class="text-muted">Owner:</small><br>
+                    <strong>{{ cow.farmer.first_name }} {{ cow.farmer.last_name }}</strong>
+                    <br>
+                    <small class="text-muted">@{{ cow.farmer.username }}</small>
+                </div>
+                <div>
+                    <small class="text-muted">Health Status:</small><br>
+                    {% if cow.health_status == 'Healthy' %}
+                        <span class="badge bg-success fs-6">Healthy</span>
+                    {% elif cow.health_status == 'Sick' %}
+                        <span class="badge bg-danger fs-6">Sick</span>
+                    {% elif cow.health_status == 'Under Treatment' %}
+                        <span class="badge bg-warning text-dark fs-6">Under Treatment</span>
+                    {% else %}
+                        <span class="badge bg-info fs-6">Recovered</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Health Records Table -->
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history me-2"></i>Medical History</span>
+        <span class="badge bg-primary">{{ records.count }} records</span>
+    </div>
+    <div class="card-body p-0">
+        {% if records %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Description / Diagnosis</th>
+                        <th>Treatment</th>
+                        <th>Veterinarian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="ps-4"><strong>{{ record.date|date:"M d, Y" }}</strong></td>
+                        <td>{{ record.description }}</td>
+                        <td>{{ record.treatment|default:"-" }}</td>
+                        <td>{{ record.vet_name|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-notes-medical fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Health Records</h4>
+            <p class="text-muted">No medical records have been added for this cow yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Back Button -->
+<div class="mt-4">
+    <a href="{% url 'admin_app:all_livestock' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to All Livestock
+    </a>
+</div>
+{% endblock %}

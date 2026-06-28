@@ -51,107 +51,81 @@
     </div>
 
     <!-- Feed Orders Section -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-primary">
-                    <i class="fas fa-shopping-cart me-2"></i>Feed Order Payments
-                </h5>
-                <span class="badge bg-primary rounded-pill">{{ feed_payments|length }} Orders</span>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4">User</th>
-                            <th>Amount</th>
-                            <th>Method</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for payment in feed_payments %}
-                        <tr class="border-bottom-light">
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <span class="text-success fw-bold">{{ payment.user.username|first|upper }}</span>
-                                    </div>
-                                    <div class="ms-3">
-                                        <div class="fw-bold">{{ payment.user.get_full_name|default:payment.user.username }}</div>
-                                        <small class="text-muted">{{ payment.user.email }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="fw-bold text-success">KES {{ payment.amount|floatformat:2 }}</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-info text-dark">
-                                    <i class="fas fa-mobile-alt me-1"></i>{{ payment.payment_method|default:"M-Pesa" }}
-                                </span>
-                            </td>
-                            <td>
-                                <div>
-                                    <div class="fw-medium">{{ payment.created_at|date:"M d, Y" }}</div>
-                                    <small class="text-muted">{{ payment.created_at|timesince }} ago</small>
-                                </div>
-                            </td>
-                            <td>
-                                {% if payment.status == 'Pending' %}
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="fas fa-clock me-1"></i>Pending
-                                    </span>
-                                {% elif payment.status == 'Approved' %}
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle me-1"></i>Approved
-                                    </span>
-                                {% elif payment.status == 'Rejected' %}
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-times-circle me-1"></i>Rejected
-                                    </span>
-                                {% elif payment.status == 'Completed' %}
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-check-double me-1"></i>Completed
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ payment.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end pe-4">
-                                {% if payment.status == 'Pending' %}
-                                <div class="btn-group" role="group">
-                                    <a href="{% url 'admin_app:approve_payment' payment.id %}" class="btn btn-sm btn-outline-success" title="Approve">
-                                        <i class="fas fa-check"></i>
-                                    </a>
-                                    <a href="{% url 'admin_app:reject_payment' payment.id %}" class="btn btn-sm btn-outline-danger" title="Reject">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <div class="text-muted">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                    <p class="mb-0">No feed order payments found</p>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-shopping-cart me-2"></i>Feed Orders</span>
+        <span class="badge bg-primary">{{ feed_orders.count }} orders</span>
     </div>
+    <div class="card-body p-0">
+        {% if feed_orders %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Order Date</th>
+                        <th>Farmer</th>
+                        <th>Feed</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in feed_orders %}
+                    <tr>
+                        <td class="ps-4">{{ order.order_date|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                                    {{ order.farmer.username|first|upper }}
+                                </div>
+                                {{ order.farmer.username }}
+                            </div>
+                        </td>
+                        <td>{{ order.feed.name }}</td>
+                        <td>{{ order.quantity }} {{ order.feed.unit }}</td>
+                        <td>KES {{ order.total_price }}</td>
+                        <td>
+                            {% if order.status == 'Delivered' %}
+                                <span class="badge bg-success">Delivered</span>
+                            {% elif order.status == 'Cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% elif order.status == 'Processing' %}
+                                <span class="badge bg-info">Processing</span>
+                            {% elif order.status == 'Confirmed' %}
+                                <span class="badge bg-primary">Confirmed</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- Update status dropdown -->
+                            <form method="post" action="{% url 'admin_app:update_order_status' order.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto; display: inline-block;">
+                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Confirmed" {% if order.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                                    <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
+                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Feed Orders Found</h4>
+            <p class="text-muted">Feed orders from farmers will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 
     <!-- Milk Payments Section -->
     <div class="card border-0 shadow-sm">

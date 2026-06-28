@@ -18,6 +18,7 @@ class UserProfile(models.Model):
     profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active_account = models.BooleanField(default=True)
+    is_approved = models.BooleanField(default=False)  # ADD THIS LINE - For collector approval
     last_login = models.DateTimeField(blank=True, null=True)
 
     # Unique Farmer Number — auto-generated when role='farmer'

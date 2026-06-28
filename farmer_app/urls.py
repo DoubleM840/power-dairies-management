@@ -11,7 +11,7 @@ urlpatterns = [
     path('milk-records/', views.milk_records, name='milk_records'),
     
     # Feeds
-    path('feeds/', views.view_feeds, name='view_feeds'),
+    path('feeds/', views.browse_feeds, name='browse_feeds'),
     path('feeds/order/<int:feed_id>/', views.order_feed, name='order_feed'),
     path('feeds/my-orders/', views.my_orders, name='my_orders'),
     path('feeds/cart/', views.view_cart, name='view_cart'),
@@ -20,8 +20,10 @@ urlpatterns = [
     path('feeds/cart/checkout/', views.checkout_cart, name='checkout_cart'),
     
     # Payments
+    path('earnings/', views.farmer_earnings, name='farmer_earnings'),
     path('payments/', views.view_payments, name='view_payments'),
     path('payments/receipt/<int:payment_id>/', views.download_receipt, name='download_receipt'),
+    path('download-receipt/<int:payment_id>/', views.download_receipt, name='download_receipt'),
     
     # Reports
     path('reports/', views.my_reports, name='my_reports'),

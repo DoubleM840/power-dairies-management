@@ -216,26 +216,6 @@
                     <p>Your role decides where you land after signing in.</p>
                 </div>
                 
-                <!-- After the Login button, add this -->
-<div class="text-center mt-3">
-    <a href="{% url 'accounts:demo_login' %}" class="btn btn-outline-info btn-lg w-100">
-        <i class="fas fa-play-circle me-2"></i> Try Demo Account
-    </a>
-    <small class="text-muted d-block mt-2">
-        <i class="fas fa-info-circle me-1"></i>Quick access to explore features
-    </small>
-</div>
-
-<!-- Demo credentials info -->
-<div class="card mt-3 border-info">
-    <div class="card-body py-2">
-        <small class="text-muted">
-            <strong>Demo Credentials:</strong><br>
-            Username: <code>demo_farmer</code> | Password: <code>demo123</code>
-        </small>
-    </div>
-</div>
-
                 {% if messages %}
                     {% for message in messages %}
                         <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
@@ -268,8 +248,18 @@
                 </div>
                 
                 <a href="{% url 'accounts:register_farmer' %}" class="btn-register btn-register-farmer">
-                    <i class="fas fa-tractor me-2"></i>Create Farmer or Manager Account
+                    <i class="fas fa-tractor me-2"></i>Create Farmer Account
                 </a>
+                
+                <a href="{% url 'accounts:register_collector' %}" class="btn-register btn-register-collector">
+                    <i class="fas fa-truck me-2"></i>Create Collector Account
+                </a>
+                
+                <div class="text-center mt-3">
+                    <a href="{% url 'accounts:demo_login' %}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-play-circle me-2"></i>Try Demo Account
+                    </a>
+                </div>
             </div>
         </div>
     </div>

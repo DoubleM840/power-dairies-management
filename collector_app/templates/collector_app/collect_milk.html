@@ -2,48 +2,60 @@
 {% block page_title %}Collect Milk{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card-custom">
-            <div class="card-header">
-                <i class="fas fa-tint me-2"></i>Record Milk Collection
+<div class="card-custom">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-tint text-primary me-2"></i>Record Milk Collection</h5>
+    </div>
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Select Farmer <span class="text-danger">*</span></label>
+                <select name="farmer" class="form-select" required>
+                    <option value="">Choose Farmer</option>
+                    {% for farmer in farmers %}
+                        <option value="{{ farmer.id }}">
+                            {{ farmer.first_name }} {{ farmer.last_name }} (@{{ farmer.username }})
+                        </option>
+                    {% empty %}
+                        <option disabled>No farmers assigned to you yet.</option>
+                    {% endfor %}
+                </select>
+                {% if not farmers %}
+                    <small class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        No farmers assigned to you yet. Contact admin for allocation.
+                    </small>
+                {% endif %}
             </div>
-            <div class="card-body p-4">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Select Farmer</label>
-                        <select name="farmer" class="form-select" required>
-                            <option value="">Choose Farmer</option>
-                            {% for alloc in assigned_farmers %}
-                            <option value="{{ alloc.farmer.id }}">{{ alloc.farmer.username }} - {{ alloc.farmer.first_name }} {{ alloc.farmer.last_name }} ({{ alloc.area }})</option>
-                            {% endfor %}
-                        </select>
-                        {% if not assigned_farmers %}
-                        <small class="text-danger">No farmers assigned to you yet.</small>
-                        {% endif %}
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Quantity (Liters)</label>
-                            <input type="number" name="quantity" class="form-control" step="0.01" min="0.1" required>
-                        </div>
-                        
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label">Date Collected</label>
-                        <input type="date" name="date_collected" class="form-control" value="{% now 'Y-m-d' %}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Notes (Optional)</label>
-                        <textarea name="notes" class="form-control" rows="2"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary-custom text-white">
-                        <i class="fas fa-save me-2"></i>Record Collection
-                    </button>
-                </form>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Quantity (Liters) <span class="text-danger">*</span></label>
+                <input type="number" name="quantity" class="form-control" step="0.1" min="0.1" required>
             </div>
-        </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Date Collected <span class="text-danger">*</span></label>
+                <input type="date" name="date_collected" class="form-control" value="{% now 'Y-m-d' %}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Fat Content (%)</label>
+                <input type="text" class="form-control" value="3.5%" disabled>
+                <small class="text-muted">Standard fat content (3.5%). Admin can adjust if needed.</small>
+                <input type="hidden" name="fat_content" value="3.5">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Notes (Optional)</label>
+                <textarea name="notes" class="form-control" rows="3" placeholder="Any additional notes..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom text-white w-100 py-3">
+                <i class="fas fa-save me-2"></i>Record Collection
+            </button>
+        </form>
     </div>
 </div>
 {% endblock %}

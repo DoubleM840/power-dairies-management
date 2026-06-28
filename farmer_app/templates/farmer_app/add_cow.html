@@ -1,42 +1,61 @@
 {% extends 'farmer_app/base.html' %}
-{% block page_title %}Add Cow{% endblock %}
+{% block page_title %}Add New Cow{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-lg-8">
         <div class="card-custom">
-            <div class="card-header"><i class="fas fa-plus me-2"></i>Register New Cow</div>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus-circle text-primary me-2"></i>Add New Cow</h5>
+            </div>
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Name (Optional)</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g., Daisy">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Ear Tag / ID <span class="text-danger">*</span></label>
+                            <input type="text" name="tag" class="form-control" placeholder="e.g., COW-001" required>
+                            <small class="text-muted">Unique identifier for this cow</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Name</label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g., Daisy">
+                            <small class="text-muted">Optional friendly name</small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tag ID *</label>
-                        <input type="text" name="tag" class="form-control" placeholder="e.g., COW-001" required>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Breed Type <span class="text-danger">*</span></label>
+                            <select name="breed_type" class="form-select" required>
+                                <option value="">Select Breed</option>
+                                <option value="Friesian">Friesian</option>
+                                <option value="Jersey">Jersey</option>
+                                <option value="Ayrshire">Ayrshire</option>
+                                <option value="Guernsey">Guernsey</option>
+                                <option value="Sahiwal">Sahiwal</option>
+                                <option value="Ankole">Ankole</option>
+                                <option value="Crossbreed">Crossbreed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Age (Months) <span class="text-danger">*</span></label>
+                            <input type="number" name="age_months" class="form-control" value="12" min="1" max="300" required>
+                            <small class="text-muted">Approximate age in months</small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Breed Type</label>
-                        <select name="breed_type" class="form-select" required>
-                            <option value="Friesian">Friesian</option>
-                            <option value="Jersey">Jersey</option>
-                            <option value="Ayrshire">Ayrshire</option>
-                            <option value="Guernsey">Guernsey</option>
-                            <option value="Sahiwal">Sahiwal</option>
-                            <option value="Ankole">Ankole</option>
-                            <option value="Crossbreed">Crossbreed</option>
-                        </select>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'farmer_app:livestock_management' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Livestock
+                        </a>
+                        <button type="submit" class="btn btn-primary-custom text-white">
+                            <i class="fas fa-save me-2"></i>Add Cow
+                        </button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Age (months)</label>
-                        <input type="number" name="age_months" class="form-control" value="12" min="1">
-                    </div>
-                    <button type="submit" class="btn btn-primary-custom text-white">
-                        <i class="fas fa-save me-2"></i>Register Cow
-                    </button>
-                    <a href="{% url 'farmer_app:livestock_management' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </form>
             </div>
         </div>

@@ -1,0 +1,133 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}My Earnings{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold"><i class="fas fa-wallet text-primary me-2"></i>My Earnings</h2>
+</div>
+
+<!-- Earnings Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted mb-1">Total Milk</p>
+                    <h3 class="mb-0">{{ total_milk_liters|floatformat:1 }} L</h3>
+                </div>
+                <div class="icon blue"><i class="fas fa-tint"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted mb-1">Gross Earnings</p>
+                    <h3 class="mb-0 text-success">KES {{ gross_earnings|floatformat:2 }}</h3>
+                </div>
+                <div class="icon green"><i class="fas fa-money-bill-wave"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted mb-1">Deductions</p>
+                    <h3 class="mb-0 text-danger">KES {{ deductions|floatformat:2 }}</h3>
+                </div>
+                <div class="icon orange"><i class="fas fa-minus-circle"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted mb-1">Net Earnings</p>
+                    <h3 class="mb-0 text-primary">KES {{ net_earnings|floatformat:2 }}</h3>
+                </div>
+                <div class="icon purple"><i class="fas fa-calculator"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rate Info -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Current Rate:</strong> KES {{ rate_per_liter }} per liter of milk
+</div>
+
+<!-- Payment History -->
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history me-2"></i>Payment History</span>
+        <span class="badge bg-primary">{{ payments.count }} transactions</span>
+    </div>
+    <div class="card-body p-0">
+        {% if payments %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td class="ps-4">
+                            <strong>{{ payment.date_created|date:"M d, Y" }}</strong><br>
+                            <small class="text-muted">{{ payment.date_created|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            {% if payment.payment_type == 'milk_sale' %}
+                                <span class="badge bg-success">Milk Sale</span>
+                            {% elif payment.payment_type == 'feed_order' %}
+                                <span class="badge bg-info">Feed Order</span>
+                            {% elif payment.payment_type == 'milk_deduction' %}
+                                <span class="badge bg-warning text-dark">Milk Deduction</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ payment.method|default:"-" }}</td>
+                        <td><strong>KES {{ payment.amount }}</strong></td>
+                        <td>
+                            {% if payment.status == 'Completed' or payment.status == 'Approved' %}
+                                <span class="badge bg-success">{{ payment.status }}</span>
+                            {% elif payment.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark">{{ payment.status }}</span>
+                            {% elif payment.status == 'Rejected' or payment.status == 'Failed' %}
+                                <span class="badge bg-danger">{{ payment.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.status == 'Completed' or payment.status == 'Approved' %}
+                                <a href="{% url 'farmer_app:download_receipt' payment.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>PDF
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Transactions Yet</h4>
+            <p class="text-muted">Your payment history will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

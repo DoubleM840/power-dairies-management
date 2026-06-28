@@ -18,6 +18,7 @@ urlpatterns = [
     path('admin-app/', include('admin_app.urls')),
     path('collector-app/', include('collector_app.urls')),
     path('farmer-app/', include('farmer_app.urls')),
+    path('mpesa/', include('mpesa.urls')),
 ]
 
 # Serve media and static files during development

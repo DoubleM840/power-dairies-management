@@ -100,22 +100,29 @@ class Payment(models.Model):
     PAYMENT_TYPE = (
         ('milk_sale', 'Milk Sale'),
         ('feed_order', 'Feed Order'),
+        ('milk_deduction', 'Milk Deduction'),
     )
+    
     STATUS_CHOICES = (
         ('Pending', 'Pending'),
+        ('Completed', 'Completed'),
+        ('Failed', 'Failed'),
         ('Approved', 'Approved'),
         ('Rejected', 'Rejected'),
-        ('Completed', 'Completed'),
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
-    method = models.CharField(max_length=50, blank=True, null=True)  # M-Pesa, Milk Deduction
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    method = models.CharField(max_length=50, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    receipt_number = models.CharField(max_length=50, blank=True, null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_approved = models.DateTimeField(blank=True, null=True)
-    receipt_number = models.CharField(max_length=50, blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.amount} ({self.status})"
 
     def __str__(self):
         return f"{self.user.username} - {self.amount} ({self.status})"
@@ -123,22 +130,31 @@ class Payment(models.Model):
 
 # ==================== FEED ====================
 class Feed(models.Model):
+    CATEGORY_CHOICES = [
+        ('general', 'General'),
+        ('energy', 'Energy Feeds'),
+        ('protein', 'Protein Feeds'),
+        ('roughage', 'Roughage'),
+        ('supplements', 'Supplements'),
+        ('minerals', 'Minerals'),
+    ]
+
     name = models.CharField(max_length=100)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general')
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock_quantity = models.IntegerField(default=0)  # in kg
     low_stock_threshold = models.IntegerField(default=50)
     unit = models.CharField(max_length=20, default='kg')
-    image = models.ImageField(upload_to='feeds/', blank=True, null=True)  # ✅ Make sure this exists
+    image = models.ImageField(upload_to='feeds/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.get_category_display()})"
     
     @property
     def is_low_stock(self):
         return self.stock_quantity <= self.low_stock_threshold
-
 
 # ==================== FEED ORDER ====================
 class FeedOrder(models.Model):

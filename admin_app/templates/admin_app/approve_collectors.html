@@ -1,0 +1,126 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Approve Collectors{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Approve Collectors</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-user-check text-primary me-2"></i>Collector Approvals</h1>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Pending Collectors -->
+<div class="card-custom mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-hourglass-half me-2"></i>Pending Approvals</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if pending_collectors %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Registered</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in pending_collectors %}
+                            <tr>
+                                <td class="ps-4"><strong>{{ profile.user.username }}</strong></td>
+                                <td>{{ profile.user.first_name }} {{ profile.user.last_name }}</td>
+                                <td>{{ profile.user.email }}</td>
+                                <td>{{ profile.phone|default:"N/A" }}</td>
+                                <td>{{ profile.date_joined|date:"M d, Y" }}</td>
+                                <td class="text-center">
+                                    <form method="post" action="{% url 'admin_app:approve_collector' profile.user.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'admin_app:reject_collector' profile.user.id %}" style="display:inline;" onsubmit="return confirm('Reject this collector?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                <h5>All caught up!</h5>
+                <p class="text-muted mb-0">No pending collector approvals.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Approved Collectors -->
+<div class="card-custom">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Approved Collectors</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if approved_collectors %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Joined</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in approved_collectors %}
+                            <tr>
+                                <td class="ps-4"><strong>{{ profile.user.username }}</strong></td>
+                                <td>{{ profile.user.first_name }} {{ profile.user.last_name }}</td>
+                                <td>{{ profile.user.email }}</td>
+                                <td>{{ profile.phone|default:"N/A" }}</td>
+                                <td>{{ profile.date_joined|date:"M d, Y" }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">Active</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5>No collectors yet</h5>
+                <p class="text-muted mb-0">Approved collectors will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
