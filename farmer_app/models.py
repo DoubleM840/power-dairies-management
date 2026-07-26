@@ -125,9 +125,10 @@ class MilkRate(models.Model):
 # ==================== PAYMENT ====================
 class Payment(models.Model):
     PAYMENT_TYPE = (
-        ('milk_sale', 'Milk Sale'),
-        ('feed_order', 'Feed Order'),
+        ('milk_sale',   'Milk Sale'),
+        ('feed_order',  'Feed Order'),
         ('milk_deduction', 'Milk Deduction'),
+        ('commission',  'Collector Commission'),
     )
     
     STATUS_CHOICES = (

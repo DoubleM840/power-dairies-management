@@ -417,18 +417,101 @@ def approve_milk_record(request, record_id):
     record = get_object_or_404(MilkRecord, id=record_id)
     if request.method == 'POST':
         action = request.POST.get('action')
+
         if action == 'approve':
             record.status = 'Approved'
-            Notification.objects.create(user=record.farmer, title='Milk Record Approved', message=f'Your milk record of {record.quantity}L from {record.date_collected} has been approved.')
-            phone = record.farmer.profile.phone if hasattr(record.farmer, 'profile') and record.farmer.profile.phone else ''
+            record.save()
+
+            # ── Notify farmer ─────────────────────────────────────────────
+            Notification.objects.create(
+                user=record.farmer,
+                title='Milk Record Approved',
+                message=(
+                    f'Your milk record of {record.quantity}L '
+                    f'from {record.date_collected} has been approved.'
+                ),
+            )
+            phone = (record.farmer.profile.phone
+                     if hasattr(record.farmer, 'profile') and record.farmer.profile.phone
+                     else '')
             if phone:
-                send_sms(phone, f'Power Dairies: {record.quantity}L milk approved today. Est. Pay: KES {float(record.quantity) * 50:.2f}.')
-            messages.success(request, f'Milk record of {record.quantity}L approved successfully.')
+                send_sms(
+                    phone,
+                    f'Power Dairies: {record.quantity}L milk approved today. '
+                    f'Est. Pay: KES {float(record.quantity) * 50:.2f}.'
+                )
+
+            # ── Auto-generate collector commission payment ─────────────────
+            if record.collector:
+                active_rate = Rate.objects.filter(is_active=True).first()
+                commission_rate = (
+                    active_rate.commission_rate if active_rate else 3.00
+                )
+                from decimal import Decimal
+                commission_amount = Decimal(str(record.quantity)) * Decimal(str(commission_rate))
+
+                # Idempotent — only create if one doesn't exist for this record
+                existing = Payment.objects.filter(
+                    user=record.collector,
+                    payment_type='commission',
+                    description__icontains=f'record #{record.id}',
+                ).exists()
+
+                if not existing:
+                    import uuid
+                    receipt = f'COM-{record.id}-{uuid.uuid4().hex[:6].upper()}'
+                    Payment.objects.create(
+                        user=record.collector,
+                        payment_type='commission',
+                        amount=commission_amount,
+                        method='Commission',
+                        description=(
+                            f'Commission for milk record #{record.id} — '
+                            f'{record.quantity}L from {record.farmer.username} '
+                            f'on {record.date_collected} '
+                            f'@ KES {commission_rate}/L'
+                        ),
+                        status='Completed',
+                        receipt_number=receipt,
+                    )
+                    Notification.objects.create(
+                        user=record.collector,
+                        title='Commission Earned',
+                        message=(
+                            f'KES {commission_amount:.2f} commission credited for '
+                            f'{record.quantity}L collected from '
+                            f'{record.farmer.username} on {record.date_collected}.'
+                        ),
+                    )
+
+            messages.success(
+                request,
+                f'Milk record of {record.quantity}L approved.'
+                + (f' Commission of KES {commission_amount:.2f} credited to {record.collector.username}.'
+                   if record.collector else '')
+            )
+
         elif action == 'reject':
+            # If previously approved and now being rejected, void the commission payment
+            if record.status == 'Approved' and record.collector:
+                Payment.objects.filter(
+                    user=record.collector,
+                    payment_type='commission',
+                    description__icontains=f'record #{record.id}',
+                ).update(status='Rejected')
+
             record.status = 'Rejected'
-            Notification.objects.create(user=record.farmer, title='Milk Record Rejected', message=f'Your milk record of {record.quantity}L from {record.date_collected} has been rejected.')
+            record.save()
+            Notification.objects.create(
+                user=record.farmer,
+                title='Milk Record Rejected',
+                message=(
+                    f'Your milk record of {record.quantity}L '
+                    f'from {record.date_collected} has been rejected.'
+                ),
+            )
             messages.warning(request, f'Milk record of {record.quantity}L rejected.')
-        record.save()
+
     return redirect('admin_app:milk_approval')
 
 @login_required
