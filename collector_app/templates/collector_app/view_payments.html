@@ -2,42 +2,310 @@
 {% block page_title %}My Payments{% endblock %}
 
 {% block content %}
-<div class="card-custom">
-    <div class="card-header"><i class="fas fa-money-bill-wave me-2"></i>Payment History</div>
-    <div class="card-body p-0">
-        <table class="table table-custom">
-            <thead>
-                <tr>
-                    <th>Receipt #</th>
-                    <th>Amount</th>
-                    <th>Type</th>
-                    <th>Method</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for payment in payments %}
-                <tr>
-                    <td>{{ payment.receipt_number|default:"-" }}</td>
-                    <td><strong>KES {{ payment.amount }}</strong></td>
-                    <td>{{ payment.get_payment_type_display }}</td>
-                    <td>{{ payment.method|default:"-" }}</td>
-                    <td>{{ payment.date_created|date:"M d, Y" }}</td>
-                    <td>
-                        <span class="badge badge-status
-                            {% if payment.status == 'Approved' or payment.status == 'Completed' %}bg-success
-                            {% elif payment.status == 'Pending' %}bg-warning text-dark
-                            {% else %}bg-danger{% endif %}">
-                            {{ payment.status }}
-                        </span>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">No payments yet</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+<!-- ── Page header ──────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-0 fw-bold">Commission &amp; Payments</h5>
+        <small class="text-muted">KES {{ commission_per_liter }}/litre commission rate</small>
+    </div>
+    <a href="{% url 'collector_app:commission_slip' %}"
+       class="btn btn-primary-custom text-white">
+        <i class="fas fa-file-pdf me-2"></i>Download This Month's Slip
+    </a>
+</div>
+
+<!-- ── Summary stat cards ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p>Total Commission Earned</p>
+                    <h3 class="text-success">KES {{ total_commission_earned|floatformat:2 }}</h3>
+                    <small class="text-muted">{{ total_approved_liters|floatformat:1 }} L approved</small>
+                </div>
+                <div class="icon green"><i class="fas fa-coins"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p>This Month</p>
+                    <h3 class="text-primary">KES {{ this_month_commission|floatformat:2 }}</h3>
+                    <small class="text-muted">{{ this_month_liters|floatformat:1 }} L this month</small>
+                </div>
+                <div class="icon blue"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p>Pending Commission</p>
+                    <h3 class="text-warning">KES {{ pending_commission|floatformat:2 }}</h3>
+                    <small class="text-muted">{{ pending_liters|floatformat:1 }} L awaiting approval</small>
+                </div>
+                <div class="icon orange"><i class="fas fa-clock"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p>Total Paid Out</p>
+                    <h3 class="text-success">KES {{ total_paid|floatformat:2 }}</h3>
+                    <small class="text-muted">Completed payments</small>
+                </div>
+                <div class="icon green"><i class="fas fa-check-circle"></i></div>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- ── Earnings chart ────────────────────────────────────────────────────── -->
+<div class="card-custom mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-chart-bar me-2"></i>Monthly Commission Earnings (Last 6 Months)</span>
+    </div>
+    <div class="card-body">
+        <canvas id="earningsChart" height="90"></canvas>
+    </div>
+</div>
+
+<!-- ── Commission breakdown per collection ───────────────────────────────── -->
+<div class="card-custom mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-tint me-2"></i>Commission Breakdown — Approved Collections</span>
+        <span class="badge bg-success">{{ records_with_commission|length }} records</span>
+    </div>
+    <div class="card-body p-0">
+        {% if records_with_commission %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Farmer</th>
+                        <th>Litres (L)</th>
+                        <th>Rate</th>
+                        <th>Commission</th>
+                        <th>Download Slip</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in records_with_commission %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-semibold">{{ item.record.date_collected|date:"M d, Y" }}</div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center
+                                            justify-content-center me-2 flex-shrink-0"
+                                     style="width:30px;height:30px;font-size:12px;font-weight:700;">
+                                    {{ item.record.farmer.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ item.record.farmer.get_full_name|default:item.record.farmer.username }}</div>
+                                    <small class="text-muted">{{ item.record.farmer.profile.farmer_number|default:item.record.farmer.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><strong>{{ item.record.quantity|floatformat:2 }}</strong></td>
+                        <td><small class="text-muted">KES {{ commission_per_liter }}/L</small></td>
+                        <td><strong class="text-success">KES {{ item.commission|floatformat:2 }}</strong></td>
+                        <td>
+                            <a href="{% url 'collector_app:commission_slip_month' item.record.date_collected|date:'Y-m' %}"
+                               class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-download me-1"></i>{{ item.record.date_collected|date:"M Y" }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-coins fa-3x text-muted mb-3"></i>
+            <h6 class="text-muted">No approved collections yet</h6>
+            <p class="text-muted small">Commission is calculated once milk records are approved by admin.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Formal payment records ────────────────────────────────────────────── -->
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fas fa-receipt me-2"></i>Payment Records</span>
+        <!-- Status filter -->
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'collector_app:view_payments' %}"
+               class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                All
+            </a>
+            <a href="?status=Completed"
+               class="btn btn-sm {% if status_filter == 'Completed' %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                Completed
+            </a>
+            <a href="?status=Pending"
+               class="btn btn-sm {% if status_filter == 'Pending' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+                Pending
+            </a>
+            <a href="?status=Approved"
+               class="btn btn-sm {% if status_filter == 'Approved' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                Approved
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if payments %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Receipt #</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td class="ps-4">
+                            <code class="small">{{ payment.receipt_number|default:"—" }}</code>
+                        </td>
+                        <td><strong class="text-success">KES {{ payment.amount|floatformat:2 }}</strong></td>
+                        <td>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                {{ payment.get_payment_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if payment.method %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="fas fa-mobile-alt me-1"></i>{{ payment.method }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-medium">{{ payment.date_created|date:"M d, Y" }}</div>
+                            <small class="text-muted">{{ payment.date_created|date:"H:i" }}</small>
+                        </td>
+                        <td>
+                            {% if payment.status == 'Completed' or payment.status == 'Approved' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-double me-1"></i>{{ payment.status }}
+                                </span>
+                            {% elif payment.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>Pending
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times me-1"></i>{{ payment.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+            <h6 class="text-muted">No payment records yet</h6>
+            {% if status_filter %}
+            <a href="{% url 'collector_app:view_payments' %}" class="btn btn-sm btn-outline-primary mt-2">
+                Clear filter
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+    var labels     = {{ chart_labels|safe }};
+    var commission = {{ chart_commission|safe }};
+    var liters     = {{ chart_liters|safe }};
+
+    var ctx = document.getElementById('earningsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Commission (KES)',
+                    data: commission,
+                    backgroundColor: 'rgba(39,174,96,0.8)',
+                    borderColor: '#27ae60',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    yAxisID: 'yCommission',
+                },
+                {
+                    label: 'Litres Collected',
+                    data: liters,
+                    backgroundColor: 'rgba(52,152,219,0.25)',
+                    borderColor: '#3498db',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    type: 'line',
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'yLiters',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            if (ctx.dataset.yAxisID === 'yCommission')
+                                return ' KES ' + ctx.parsed.y.toFixed(2);
+                            return ' ' + ctx.parsed.y.toFixed(1) + ' L';
+                        }
+                    }
+                }
+            },
+            scales: {
+                yCommission: {
+                    type: 'linear', position: 'left', beginAtZero: true,
+                    ticks: { callback: function(v){ return 'KES ' + v; } },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                yLiters: {
+                    type: 'linear', position: 'right', beginAtZero: true,
+                    ticks: { callback: function(v){ return v + ' L'; } },
+                    grid: { drawOnChartArea: false }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+})();
+</script>
 {% endblock %}
