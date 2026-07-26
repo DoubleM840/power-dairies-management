@@ -1,23 +1,25 @@
 import subprocess, sys, os
 
-os.chdir(r'c:\Users\HomePC\dairy_management')
+ROOT = r'c:\Users\HomePC\dairy_management'
+LOG  = os.path.join(ROOT, '_gitpush_out.txt')
 
-def run(cmd, **kw):
-    r = subprocess.run(cmd, capture_output=True, text=True,
-                       env={**os.environ, 'PYTHONIOENCODING': 'utf-8'}, **kw)
-    out = (r.stdout + r.stderr).strip()
-    with open('_gitpush_out.txt', 'a', encoding='utf-8') as f:
-        f.write(f'\n--- {" ".join(cmd)} ---\n{out}\nRC={r.returncode}\n')
-    return r.returncode, out
+env = {**os.environ, 'PYTHONIOENCODING': 'utf-8', 'GIT_TERMINAL_PROMPT': '0'}
 
-# Stage all tracked + new files (respects .gitignore)
+def run(args):
+    r = subprocess.run(args, cwd=ROOT, capture_output=True, text=True, env=env)
+    line = f'CMD: {args}\nOUT: {r.stdout.strip()}\nERR: {r.stderr.strip()}\nRC:  {r.returncode}\n\n'
+    with open(LOG, 'a', encoding='utf-8') as f:
+        f.write(line)
+    return r.returncode
+
+# Clear log
+open(LOG, 'w').close()
+
 run(['git', 'add', '-A'])
 run(['git', 'status', '--short'])
-rc, out = run(['git', 'commit', '-m',
+rc = run(['git', 'commit', '-m',
     'feat: dark mode, M-Pesa STK Push, order tracking, payment summary, '
     'collector sync on milk approval, admin/collector/farmer template fixes'])
-if rc not in (0, 1):   # 1 = nothing to commit
+if rc not in (0, 1):
     sys.exit(rc)
-rc, out = run(['git', 'push'])
-with open('_gitpush_out.txt', 'a', encoding='utf-8') as f:
-    f.write('\nFINAL RC=' + str(rc) + '\n')
+run(['git', 'push'])
