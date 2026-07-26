@@ -1,2 +1,0 @@
-OK manage_payments=/admin-app/payments/ payment_summary=/admin-app/payments/summary/
-RC=0

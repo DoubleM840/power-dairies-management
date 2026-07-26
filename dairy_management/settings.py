@@ -2,29 +2,37 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env file
+# Load .env for local development
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-dairy-management-secret-key-2024'
+# ── Security ──────────────────────────────────────────────────────────────────
+# In production SECRET_KEY is set via the Render environment variable.
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-dairy-management-secret-key-2024-local-only'
+)
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
-# CSRF trusted origins - Add your Railway URL
+
 CSRF_TRUSTED_ORIGINS = [
-    'https://power-dairies-management-production.up.railway.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
-    'https://sandpit-depth-squatting.ngrok-free.dev',
-    'https://*.ngrok-free.app',
-    'https://*.ngrok.io',
+    # Render — set via environment variable so any subdomain works
+    # e.g. https://power-dairies.onrender.com
+] + [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
 ]
 
-# Tell Django it's behind a proxy (Railway uses HTTPS)
+# Required when running behind Render's / any HTTPS proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -32,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Custom Apps
+    # Project apps
     'accounts',
     'admin_app',
     'collector_app',
@@ -41,9 +49,10 @@ INSTALLED_APPS = [
     'chatbot',
 ]
 
+# ── Middleware ─────────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,12 +60,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-# WhiteNoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ROOT_URLCONF = 'dairy_management.urls'
 
@@ -79,34 +82,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dairy_management.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
-
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Africa/Nairobi'
-USE_I18N = True
-USE_TZ = True
-
-# Database - Use PostgreSQL in production
+# ── Database ──────────────────────────────────────────────────────────────────
+# Render (and any other host) injects DATABASE_URL — use it when present.
 if os.environ.get('DATABASE_URL'):
-    # Production (Railway)
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+        'default': dj_database_url.config(
+            default=os.environ['DATABASE_URL'],
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
 else:
-    # Development (Local)
+    # Local development — SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -114,46 +102,64 @@ else:
         }
     }
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# ── Password validation ───────────────────────────────────────────────────────
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
 
-MEDIA_URL = '/media/'
+# ── Internationalisation ──────────────────────────────────────────────────────
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE     = 'Africa/Nairobi'
+USE_I18N      = True
+USE_TZ        = True
+
+# ── Static & media files ──────────────────────────────────────────────────────
+STATIC_URL      = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT     = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise — serves static files efficiently in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+MEDIA_URL  = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Authentication settings
-LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'accounts:dashboard'  # Where to go after successful login
-LOGOUT_REDIRECT_URL = 'accounts:login'     # Where to go after logout
-# Email settings for claims
+# ── Authentication ────────────────────────────────────────────────────────────
+LOGIN_URL           = 'accounts:login'
+LOGIN_REDIRECT_URL  = 'accounts:dashboard'
+LOGOUT_REDIRECT_URL = 'accounts:login'
+
+# ── Email (console backend for now) ──────────────────────────────────────────
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+# ── Session ───────────────────────────────────────────────────────────────────
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE              = 3600
+SESSION_SAVE_EVERY_REQUEST      = True
+SESSION_COOKIE_HTTPONLY         = True
 
-# Session settings - Force login every time
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when browser closes
-SESSION_COOKIE_AGE = 3600  # Session expires after 1 hour of inactivity (optional)
-SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on every request
+# Secure cookies — force True in production (when not DEBUG)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE    = not DEBUG
 
-# Optional: Set session cookie to be more secure
-SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-SESSION_COOKIE_SECURE = False  # Set to True if using HTTPS in production
-CSRF_COOKIE_SECURE = False
-
-# M-Pesa Daraja API Configuration — credentials loaded from .env
+# ── M-Pesa Daraja API ─────────────────────────────────────────────────────────
 _mpesa_env = os.environ.get('MPESA_ENVIRONMENT', 'sandbox').lower()
 MPESA_CONFIG = {
-    'SANDBOX': _mpesa_env != 'production',
-    'CONSUMER_KEY': os.environ.get('MPESA_CONSUMER_KEY', ''),
-    'CONSUMER_SECRET': os.environ.get('MPESA_CONSUMER_SECRET', ''),
-    'SHORTCODE': os.environ.get('MPESA_SHORTCODE', '174379'),
-    'PASSKEY': os.environ.get('MPESA_PASSKEY', ''),
-    'INITIATOR_NAME': os.environ.get('MPESA_INITIATOR_NAME', 'testapi'),
+    'SANDBOX':             _mpesa_env != 'production',
+    'CONSUMER_KEY':        os.environ.get('MPESA_CONSUMER_KEY', ''),
+    'CONSUMER_SECRET':     os.environ.get('MPESA_CONSUMER_SECRET', ''),
+    'SHORTCODE':           os.environ.get('MPESA_SHORTCODE', '174379'),
+    'PASSKEY':             os.environ.get('MPESA_PASSKEY', ''),
+    'INITIATOR_NAME':      os.environ.get('MPESA_INITIATOR_NAME', 'testapi'),
     'SECURITY_CREDENTIAL': os.environ.get('MPESA_SECURITY_CREDENTIAL', ''),
-    'C2B_SHORTCODE': os.environ.get('MPESA_SHORTCODE', '174379'),
-    'C2B_SHORT_CODE': os.environ.get('MPESA_SHORTCODE', '174379'),
-    'CALLBACK_URL': os.environ.get('MPESA_CALLBACK_URL', 'https://sandpit-depth-squatting.ngrok-free.dev/mpesa/callback/'),
-    'ACCOUNT_REFERENCE': os.environ.get('MPESA_ACCOUNT_REFERENCE', 'Power Dairies'),
-    'TRANSACTION_DESC': os.environ.get('MPESA_TRANSACTION_DESC', 'Payment for feed order'),
+    'C2B_SHORTCODE':       os.environ.get('MPESA_SHORTCODE', '174379'),
+    'C2B_SHORT_CODE':      os.environ.get('MPESA_SHORTCODE', '174379'),
+    'CALLBACK_URL':        os.environ.get('MPESA_CALLBACK_URL', ''),
+    'ACCOUNT_REFERENCE':   os.environ.get('MPESA_ACCOUNT_REFERENCE', 'Power Dairies'),
+    'TRANSACTION_DESC':    os.environ.get('MPESA_TRANSACTION_DESC', 'Payment for feed order'),
 }
