@@ -10,6 +10,7 @@ urlpatterns = [
     path('payments/', views.view_payments, name='view_payments'),
     path('payments/commission-slip/', views.download_commission_slip, name='commission_slip'),
     path('payments/commission-slip/<str:month>/', views.download_commission_slip, name='commission_slip_month'),
+    path('payments/receipt/<int:payment_id>/', views.download_payment_receipt, name='payment_receipt'),
     path('farmers/', views.view_farmers, name='view_farmers'),
     path('profile/', views.view_profile, name='view_profile'),
     path('notifications/', views.view_notifications, name='view_notifications'),

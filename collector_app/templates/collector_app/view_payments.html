@@ -4,13 +4,12 @@
 {% block content %}
 
 <!-- ── Page header ──────────────────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h5 class="mb-0 fw-bold">Commission &amp; Payments</h5>
         <small class="text-muted">KES {{ commission_per_liter }}/litre commission rate</small>
     </div>
-    <a href="{% url 'collector_app:commission_slip' %}"
-       class="btn btn-primary-custom text-white">
+    <a href="{% url 'collector_app:commission_slip' %}" class="btn btn-primary-custom text-white">
         <i class="fas fa-file-pdf me-2"></i>Download This Month's Slip
     </a>
 </div>
@@ -69,8 +68,8 @@
 
 <!-- ── Earnings chart ────────────────────────────────────────────────────── -->
 <div class="card-custom mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="fas fa-chart-bar me-2"></i>Monthly Commission Earnings (Last 6 Months)</span>
+    <div class="card-header">
+        <i class="fas fa-chart-bar me-2"></i>Monthly Commission Earnings (Last 6 Months)
     </div>
     <div class="card-body">
         <canvas id="earningsChart" height="90"></canvas>
@@ -94,7 +93,7 @@
                         <th>Litres (L)</th>
                         <th>Rate</th>
                         <th>Commission</th>
-                        <th>Download Slip</th>
+                        <th>Slip</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -121,7 +120,7 @@
                         <td><strong class="text-success">KES {{ item.commission|floatformat:2 }}</strong></td>
                         <td>
                             <a href="{% url 'collector_app:commission_slip_month' item.record.date_collected|date:'Y-m' %}"
-                               class="btn btn-sm btn-outline-success">
+                               class="btn btn-sm btn-outline-success" title="Download {{ item.record.date_collected|date:'M Y' }} slip">
                                 <i class="fas fa-download me-1"></i>{{ item.record.date_collected|date:"M Y" }}
                             </a>
                         </td>
@@ -140,32 +139,63 @@
     </div>
 </div>
 
-<!-- ── Formal payment records ────────────────────────────────────────────── -->
+<!-- ── Payment Records ───────────────────────────────────────────────────── -->
 <div class="card-custom">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span><i class="fas fa-receipt me-2"></i>Payment Records</span>
-        <!-- Status filter -->
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="{% url 'collector_app:view_payments' %}"
-               class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-                All
-            </a>
-            <a href="?status=Completed"
-               class="btn btn-sm {% if status_filter == 'Completed' %}btn-success{% else %}btn-outline-secondary{% endif %}">
-                Completed
-            </a>
-            <a href="?status=Pending"
-               class="btn btn-sm {% if status_filter == 'Pending' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
-                Pending
-            </a>
-            <a href="?status=Approved"
-               class="btn btn-sm {% if status_filter == 'Approved' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-                Approved
-            </a>
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <span><i class="fas fa-receipt me-2"></i>Payment Records</span>
+            <!-- Status filter tabs -->
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="?range={{ date_range }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                   class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+                <a href="?status=Completed&range={{ date_range }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                   class="btn btn-sm {% if status_filter == 'Completed' %}btn-success{% else %}btn-outline-secondary{% endif %}">Completed</a>
+                <a href="?status=Pending&range={{ date_range }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                   class="btn btn-sm {% if status_filter == 'Pending' %}btn-warning text-dark{% else %}btn-outline-secondary{% endif %}">Pending</a>
+                <a href="?status=Approved&range={{ date_range }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                   class="btn btn-sm {% if status_filter == 'Approved' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Approved</a>
+            </div>
         </div>
+
+        <!-- ── Date range filter ──────────────────────────────────────────── -->
+        <form method="get" class="row g-2 align-items-end">
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            <div class="col-auto">
+                <label class="form-label small text-muted fw-semibold mb-1">Period</label>
+                <select name="range" class="form-select form-select-sm" onchange="toggleCustomDates(this.value)">
+                    <option value=""      {% if not date_range %}selected{% endif %}>All time</option>
+                    <option value="week"  {% if date_range == 'week' %}selected{% endif %}>Last 7 days</option>
+                    <option value="month" {% if date_range == 'month' %}selected{% endif %}>This month</option>
+                    <option value="last_month" {% if date_range == 'last_month' %}selected{% endif %}>Last month</option>
+                    <option value="custom" {% if date_range == 'custom' %}selected{% endif %}>Custom range</option>
+                </select>
+            </div>
+            <div id="customDates" class="col-auto d-flex gap-2 align-items-end"
+                 style="{% if date_range != 'custom' %}display:none!important{% endif %}">
+                <div>
+                    <label class="form-label small text-muted mb-1">From</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label small text-muted mb-1">To</label>
+                    <input type="date" name="date_to"   value="{{ date_to }}"   class="form-control form-control-sm">
+                </div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary-custom text-white">
+                    <i class="fas fa-search me-1"></i>Apply
+                </button>
+                {% if date_range or status_filter %}
+                <a href="{% url 'collector_app:view_payments' %}" class="btn btn-sm btn-outline-secondary ms-1">
+                    <i class="fas fa-times me-1"></i>Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
     </div>
+
     <div class="card-body p-0">
-        {% if payments %}
+        {% if payments_with_balance %}
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -174,62 +204,129 @@
                         <th>Amount</th>
                         <th>Type</th>
                         <th>Method</th>
+                        <th>Description</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th class="text-end">Running Balance</th>
+                        <th class="text-center">Receipt</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for payment in payments %}
+                    {% for item in payments_with_balance %}
+                    {% with p=item.payment %}
                     <tr>
+                        <!-- 1. Receipt number -->
                         <td class="ps-4">
-                            <code class="small">{{ payment.receipt_number|default:"—" }}</code>
+                            <code class="small">{{ p.receipt_number|default:"—" }}</code>
                         </td>
-                        <td><strong class="text-success">KES {{ payment.amount|floatformat:2 }}</strong></td>
+
+                        <!-- Amount -->
+                        <td><strong class="text-success">KES {{ p.amount|floatformat:2 }}</strong></td>
+
+                        <!-- Type -->
                         <td>
                             <span class="badge bg-primary bg-opacity-10 text-primary">
-                                {{ payment.get_payment_type_display }}
+                                {{ p.get_payment_type_display }}
                             </span>
                         </td>
+
+                        <!-- Method -->
                         <td>
-                            {% if payment.method %}
+                            {% if p.method %}
                                 <span class="badge bg-info text-dark">
-                                    <i class="fas fa-mobile-alt me-1"></i>{{ payment.method }}
+                                    <i class="fas fa-mobile-alt me-1"></i>{{ p.method }}
                                 </span>
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
+
+                        <!-- 1. Description column -->
                         <td>
-                            <div class="fw-medium">{{ payment.date_created|date:"M d, Y" }}</div>
-                            <small class="text-muted">{{ payment.date_created|date:"H:i" }}</small>
+                            <small class="text-muted" title="{{ p.description }}">
+                                {{ p.description|default:"—"|truncatechars:45 }}
+                            </small>
                         </td>
+
+                        <!-- Date -->
                         <td>
-                            {% if payment.status == 'Completed' or payment.status == 'Approved' %}
+                            <div class="fw-medium">{{ p.date_created|date:"M d, Y" }}</div>
+                            <small class="text-muted">{{ p.date_created|date:"H:i" }}</small>
+                        </td>
+
+                        <!-- Status -->
+                        <td>
+                            {% if p.status == 'Completed' or p.status == 'Approved' %}
                                 <span class="badge bg-success">
-                                    <i class="fas fa-check-double me-1"></i>{{ payment.status }}
+                                    <i class="fas fa-check-double me-1"></i>{{ p.status }}
                                 </span>
-                            {% elif payment.status == 'Pending' %}
+                            {% elif p.status == 'Pending' %}
                                 <span class="badge bg-warning text-dark">
                                     <i class="fas fa-clock me-1"></i>Pending
                                 </span>
                             {% else %}
                                 <span class="badge bg-danger">
-                                    <i class="fas fa-times me-1"></i>{{ payment.status }}
+                                    <i class="fas fa-times me-1"></i>{{ p.status }}
                                 </span>
                             {% endif %}
                         </td>
+
+                        <!-- 2. Running balance -->
+                        <td class="text-end">
+                            {% if p.status == 'Completed' or p.status == 'Approved' %}
+                                <strong class="text-success">KES {{ item.running_balance|floatformat:2 }}</strong>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 3. Download receipt -->
+                        <td class="text-center">
+                            <a href="{% url 'collector_app:payment_receipt' p.id %}"
+                               class="btn btn-sm btn-outline-success" title="Download receipt">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </td>
                     </tr>
+                    {% endwith %}
                     {% endfor %}
                 </tbody>
+
+                <!-- 5. Summary footer row -->
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td class="ps-4" colspan="2">
+                            {{ filtered_count }} record{{ filtered_count|pluralize }}
+                        </td>
+                        <td colspan="4" class="text-muted small">
+                            {% if date_range == 'week' %}Last 7 days
+                            {% elif date_range == 'month' %}This month
+                            {% elif date_range == 'last_month' %}Last month
+                            {% elif date_range == 'custom' %}Custom range
+                            {% else %}All time{% endif %}
+                            {% if status_filter %} · {{ status_filter }} only{% endif %}
+                        </td>
+                        <td class="text-success">
+                            KES {{ filtered_total|floatformat:2 }}
+                            <div class="text-muted small fw-normal">total shown</div>
+                        </td>
+                        <td class="text-end text-success">
+                            KES {{ filtered_completed|floatformat:2 }}
+                            <div class="text-muted small fw-normal">completed only</div>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
+
         {% else %}
         <div class="text-center py-5">
             <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-            <h6 class="text-muted">No payment records yet</h6>
-            {% if status_filter %}
+            <h6 class="text-muted">No payment records found</h6>
+            {% if status_filter or date_range %}
             <a href="{% url 'collector_app:view_payments' %}" class="btn btn-sm btn-outline-primary mt-2">
-                Clear filter
+                <i class="fas fa-times me-1"></i>Clear filters
             </a>
             {% endif %}
         </div>
@@ -243,6 +340,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (function () {
+    /* ── Earnings chart ──────────────────────────────────────────────────── */
     var labels     = {{ chart_labels|safe }};
     var commission = {{ chart_commission|safe }};
     var liters     = {{ chart_liters|safe }};
@@ -265,10 +363,9 @@
                 {
                     label: 'Litres Collected',
                     data: liters,
-                    backgroundColor: 'rgba(52,152,219,0.25)',
+                    backgroundColor: 'rgba(52,152,219,0.2)',
                     borderColor: '#3498db',
                     borderWidth: 2,
-                    borderRadius: 6,
                     type: 'line',
                     fill: true,
                     tension: 0.4,
@@ -284,9 +381,9 @@
                 tooltip: {
                     callbacks: {
                         label: function (ctx) {
-                            if (ctx.dataset.yAxisID === 'yCommission')
-                                return ' KES ' + ctx.parsed.y.toFixed(2);
-                            return ' ' + ctx.parsed.y.toFixed(1) + ' L';
+                            return ctx.dataset.yAxisID === 'yCommission'
+                                ? ' KES ' + ctx.parsed.y.toFixed(2)
+                                : ' ' + ctx.parsed.y.toFixed(1) + ' L';
                         }
                     }
                 }
@@ -295,17 +392,25 @@
                 yCommission: {
                     type: 'linear', position: 'left', beginAtZero: true,
                     ticks: { callback: function(v){ return 'KES ' + v; } },
-                    grid: { color: 'rgba(0,0,0,0.05)' }
+                    grid:  { color: 'rgba(0,0,0,0.05)' }
                 },
                 yLiters: {
                     type: 'linear', position: 'right', beginAtZero: true,
                     ticks: { callback: function(v){ return v + ' L'; } },
-                    grid: { drawOnChartArea: false }
+                    grid:  { drawOnChartArea: false }
                 },
                 x: { grid: { display: false } }
             }
         }
     });
+
+    /* ── Show/hide custom date inputs ────────────────────────────────────── */
+    function toggleCustomDates(val) {
+        var el = document.getElementById('customDates');
+        el.style.display = val === 'custom' ? 'flex' : 'none';
+    }
+    window.toggleCustomDates = toggleCustomDates;
+
 })();
 </script>
 {% endblock %}
