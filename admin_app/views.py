@@ -1,4 +1,6 @@
 import json
+import uuid
+from decimal import Decimal
 from functools import wraps
 from datetime import datetime, timedelta
 
@@ -442,12 +444,12 @@ def approve_milk_record(request, record_id):
                 )
 
             # ── Auto-generate collector commission payment ─────────────────
+            commission_amount = None  # defined before the if block to avoid NameError
             if record.collector:
                 active_rate = Rate.objects.filter(is_active=True).first()
                 commission_rate = (
                     active_rate.commission_rate if active_rate else 3.00
                 )
-                from decimal import Decimal
                 commission_amount = Decimal(str(record.quantity)) * Decimal(str(commission_rate))
 
                 # Idempotent — only create if one doesn't exist for this record
@@ -458,7 +460,6 @@ def approve_milk_record(request, record_id):
                 ).exists()
 
                 if not existing:
-                    import uuid
                     receipt = f'COM-{record.id}-{uuid.uuid4().hex[:6].upper()}'
                     Payment.objects.create(
                         user=record.collector,
@@ -488,7 +489,7 @@ def approve_milk_record(request, record_id):
                 request,
                 f'Milk record of {record.quantity}L approved.'
                 + (f' Commission of KES {commission_amount:.2f} credited to {record.collector.username}.'
-                   if record.collector else '')
+                   if record.collector and commission_amount else '')
             )
 
         elif action == 'reject':
