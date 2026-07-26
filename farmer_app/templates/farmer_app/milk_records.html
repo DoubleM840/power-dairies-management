@@ -57,10 +57,14 @@
 {{ labels|json_script:"recordsLabels" }}
 {{ quantities|json_script:"recordsQuantities" }}
 {{ fat_contents|json_script:"recordsFats" }}
+{{ forecast_next_month|json_script:"forecastNextMonth" }}
 <script>
 const labels = JSON.parse(document.getElementById('recordsLabels').textContent);
 const quantities = JSON.parse(document.getElementById('recordsQuantities').textContent);
 const fatContents = JSON.parse(document.getElementById('recordsFats').textContent);
+const forecastNextMonth = JSON.parse(document.getElementById('forecastNextMonth').textContent);
+const forecastData = Array(labels.length).fill(null);
+forecastData[forecastData.length - 1] = forecastNextMonth;
 const ctx = document.getElementById('milkLineChart').getContext('2d');
 new Chart(ctx, {
     type: 'line',
@@ -87,6 +91,16 @@ new Chart(ctx, {
                 borderWidth: 2,
                 pointRadius: 2,
                 yAxisID: 'y1',
+            },
+            {
+                label: 'Forecast',
+                data: forecastData,
+                borderColor: '#2e86de',
+                borderDash: [6, 6],
+                borderWidth: 2,
+                pointRadius: 3,
+                fill: false,
+                yAxisID: 'y',
             }
         ]
     },

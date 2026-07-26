@@ -1,5 +1,9 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -13,6 +17,9 @@ CSRF_TRUSTED_ORIGINS = [
     'https://power-dairies-management-production.up.railway.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'https://sandpit-depth-squatting.ngrok-free.dev',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok.io',
 ]
 
 # Tell Django it's behind a proxy (Railway uses HTTPS)
@@ -31,6 +38,7 @@ INSTALLED_APPS = [
     'collector_app',
     'farmer_app',
     'mpesa',
+    'chatbot',
 ]
 
 MIDDLEWARE = [
@@ -133,18 +141,19 @@ SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
 SESSION_COOKIE_SECURE = False  # Set to True if using HTTPS in production
 CSRF_COOKIE_SECURE = False
 
-# M-Pesa Daraja API Configuration
+# M-Pesa Daraja API Configuration — credentials loaded from .env
+_mpesa_env = os.environ.get('MPESA_ENVIRONMENT', 'sandbox').lower()
 MPESA_CONFIG = {
-    'SANDBOX': True,  # Set to False for production
-    'CONSUMER_KEY': 'YbTvHLd5umXel5IdYeGcjuBvEOtzXGqoZdLTFlwz3nmFnEPh',
-    'CONSUMER_SECRET': 'jtblbRUPU2PrnVpJWj6XUtJshSfEvYoZL9Y7fQBC2TjUdQ7gRnNJTj72yDGoXjND',
-    'SHORTCODE': '174379',  # Test shortcode for sandbox
-    'PASSKEY': 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',  # Sandbox passkey
-    'INITIATOR_NAME': 'testapi',
-    'SECURITY_CREDENTIAL': 'test_credential',
-    'C2B_SHORTCODE': '174379',
-    'C2B_SHORT_CODE': '174379',
-    'CALLBACK_URL': 'https://sandpit-depth-squatting.ngrok-free.dev/mpesa/callback/', # Update with your domain
-    'ACCOUNT_REFERENCE': 'Power Dairies',
-    'TRANSACTION_DESC': 'Payment for feed order',
+    'SANDBOX': _mpesa_env != 'production',
+    'CONSUMER_KEY': os.environ.get('MPESA_CONSUMER_KEY', ''),
+    'CONSUMER_SECRET': os.environ.get('MPESA_CONSUMER_SECRET', ''),
+    'SHORTCODE': os.environ.get('MPESA_SHORTCODE', '174379'),
+    'PASSKEY': os.environ.get('MPESA_PASSKEY', ''),
+    'INITIATOR_NAME': os.environ.get('MPESA_INITIATOR_NAME', 'testapi'),
+    'SECURITY_CREDENTIAL': os.environ.get('MPESA_SECURITY_CREDENTIAL', ''),
+    'C2B_SHORTCODE': os.environ.get('MPESA_SHORTCODE', '174379'),
+    'C2B_SHORT_CODE': os.environ.get('MPESA_SHORTCODE', '174379'),
+    'CALLBACK_URL': os.environ.get('MPESA_CALLBACK_URL', 'https://sandpit-depth-squatting.ngrok-free.dev/mpesa/callback/'),
+    'ACCOUNT_REFERENCE': os.environ.get('MPESA_ACCOUNT_REFERENCE', 'Power Dairies'),
+    'TRANSACTION_DESC': os.environ.get('MPESA_TRANSACTION_DESC', 'Payment for feed order'),
 }

@@ -7,8 +7,9 @@ from django.db.models import Sum, Count, Avg
 import json
 from datetime import timedelta 
 from farmer_app.models import (
-    UserProfile, MilkRecord, Payment, Notification, CollectorAllocation, User
+    UserProfile, MilkRecord, Payment, Notification, CollectorAllocation, Rate
 )
+from farmer_app.services import send_sms
 from functools import wraps
 
 
@@ -16,9 +17,9 @@ def collector_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('accounts:login')  # FIXED: Added 'accounts:' namespace
+            return redirect('accounts:login')
         try:
-            if request.user.profile.role != 'collector':  # FIXED: Changed farmer_profile to profile
+            if request.user.profile.role != 'collector':
                 messages.error(request, 'Access denied. Collectors only.')
                 return redirect('accounts:login')
         except UserProfile.DoesNotExist:
@@ -33,50 +34,33 @@ def collector_dashboard(request):
     """Main dashboard for the collector"""
     today = timezone.now().date()
     
-    # Get allocated farmers
-    allocations = CollectorAllocation.objects.filter(
-        collector=request.user, 
-        is_active=True
-    ).select_related('farmer')
+    # ✅ DYNAMIC COMMISSION RATE (Default: 3.0 KES/L)
+    active_rate = Rate.objects.filter(is_active=True).first()
+    commission_per_liter = float(active_rate.commission_rate) if active_rate else 3.0
     
+    # Get allocated farmers
+    allocations = CollectorAllocation.objects.filter(collector=request.user, is_active=True).select_related('farmer')
     allocated_farmers_count = allocations.count()
     
     # Stats
-    today_milk = MilkRecord.objects.filter(
-        collector=request.user, date_collected=today
-    ).aggregate(total=Sum('quantity'))['total'] or 0
-    
-    today_collections_count = MilkRecord.objects.filter(
-        collector=request.user, date_collected=today
-    ).count()
-    
-    total_milk = MilkRecord.objects.filter(
-        collector=request.user
-    ).aggregate(total=Sum('quantity'))['total'] or 0
-    
-    total_farmers_visited = MilkRecord.objects.filter(
-        collector=request.user
-    ).values('farmer').distinct().count()
-    
-    pending_records = MilkRecord.objects.filter(
-        collector=request.user, status='Pending'
-    ).count()
-    
-    approved_records = MilkRecord.objects.filter(
-        collector=request.user, status='Approved'
-    ).count()
+    today_milk = MilkRecord.objects.filter(collector=request.user, date_collected=today).aggregate(total=Sum('quantity'))['total'] or 0
+    today_collections_count = MilkRecord.objects.filter(collector=request.user, date_collected=today).count()
+    total_milk = MilkRecord.objects.filter(collector=request.user).aggregate(total=Sum('quantity'))['total'] or 0
+    total_farmers_visited = MilkRecord.objects.filter(collector=request.user).values('farmer').distinct().count()
+    pending_records = MilkRecord.objects.filter(collector=request.user, status='Pending').count()
+    approved_records = MilkRecord.objects.filter(collector=request.user, status='Approved').count()
     
     # Calculate total payments for today's collections
-    today_payments = Payment.objects.filter(
-        user=request.user,
-        date_created__date=today,
-        status='Completed'
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    today_payments = Payment.objects.filter(user=request.user, date_created__date=today, status='Completed').aggregate(total=Sum('amount'))['total'] or 0
     
-    # Recent collections
-    recent_collections = MilkRecord.objects.filter(
-        collector=request.user
-    ).select_related('farmer').order_by('-date_collected')[:10]
+    # ✅ Pre-calculate commission for recent collections table
+    recent_collections = MilkRecord.objects.filter(collector=request.user).select_related('farmer').order_by('-date_collected')[:10]
+    recent_collections_data = []
+    for record in recent_collections:
+        recent_collections_data.append({
+            'record': record,
+            'commission': float(record.quantity) * commission_per_liter
+        })
     
     # Chart data - last 7 days
     labels = []
@@ -84,23 +68,21 @@ def collector_dashboard(request):
     for i in range(6, -1, -1):
         date = today - timedelta(days=i)
         labels.append(date.strftime('%b %d'))
-        qty = MilkRecord.objects.filter(
-            collector=request.user, date_collected=date
-        ).aggregate(total=Sum('quantity'))['total'] or 0
+        qty = MilkRecord.objects.filter(collector=request.user, date_collected=date).aggregate(total=Sum('quantity'))['total'] or 0
         quantities.append(float(qty))
     
+    # ✅ Calculate Total Commission
+    total_commission = float(total_milk) * commission_per_liter
+    
     context = {
-        'today_milk': today_milk,
-        'today_collections_count': today_collections_count,
-        'total_milk': total_milk,
-        'total_farmers_visited': total_farmers_visited,
-        'allocated_farmers_count': allocated_farmers_count,
-        'pending_records': pending_records,
-        'approved_records': approved_records,
-        'today_payments': today_payments,
-        'recent_collections': recent_collections,
-        'labels': json.dumps(labels),
-        'quantities': json.dumps(quantities),
+        'today_milk': today_milk, 'today_collections_count': today_collections_count,
+        'total_milk': total_milk, 'total_farmers_visited': total_farmers_visited,
+        'allocated_farmers_count': allocated_farmers_count, 'pending_records': pending_records,
+        'approved_records': approved_records, 'today_payments': today_payments,
+        'recent_collections_data': recent_collections_data, # ✅ UPDATED
+        'total_commission': total_commission,               # ✅ ADDED
+        'commission_per_liter': commission_per_liter,       # ✅ ADDED
+        'labels': json.dumps(labels), 'quantities': json.dumps(quantities),
     }
     return render(request, 'collector_app/dashboard.html', context)
 
@@ -112,55 +94,36 @@ def collect_milk(request):
         quantity = request.POST.get('quantity')
         date_collected = request.POST.get('date_collected')
         notes = request.POST.get('notes', '')
-        
         fat_content = 3.5  # Standard fat content
-        
         farmer = get_object_or_404(User, id=farmer_id)
         
         record = MilkRecord.objects.create(
-            farmer=farmer,
-            collector=request.user,
-            quantity=quantity,
-            fat_content=fat_content,
-            date_collected=date_collected,
-            notes=notes,
-            status='Pending'
+            farmer=farmer, collector=request.user, quantity=quantity, fat_content=fat_content,
+            date_collected=date_collected, notes=notes, status='Pending'
         )
         
-        # Calculate estimated payment (e.g., 50 KES per liter)
-        rate_per_liter = 50
+        # ✅ DYNAMIC RATES
+        active_rate = Rate.objects.filter(is_active=True).first()
+        rate_per_liter = float(active_rate.fat_rate) if active_rate else 80.0
+        commission_per_liter = float(active_rate.commission_rate) if active_rate else 3.0
+        
         estimated_payment = float(quantity) * rate_per_liter
+        estimated_commission = float(quantity) * commission_per_liter
         
-        Notification.objects.create(
-            user=farmer,
-            title='Milk Collected',
-            message=f'{quantity}L of milk was collected by {request.user.username} on {date_collected}. Estimated payment: KES {estimated_payment:.2f}'
-        )
+        Notification.objects.create(user=farmer, title='Milk Collected', message=f'{quantity}L of milk was collected by {request.user.username} on {date_collected}. Estimated payment: KES {estimated_payment:.2f}')
+        phone = farmer.profile.phone if hasattr(farmer, 'profile') and farmer.profile.phone else ''
+        if phone:
+            send_sms(phone, f'Power Dairies: {quantity}L milk collected today. Est. Pay: KES {estimated_payment:.2f}.')
         
-        admins = User.objects.filter(profile__role='admin')
-        for admin in admins:
-            Notification.objects.create(
-                user=admin,
-                title='New Milk Record',
-                message=f'Collector {request.user.username} recorded {quantity}L from {farmer.username}.'
-            )
+        for admin in User.objects.filter(profile__role='admin'):
+            Notification.objects.create(user=admin, title='New Milk Record', message=f'Collector {request.user.username} recorded {quantity}L from {farmer.username}.')
 
-        messages.success(
-            request, 
-            f'Successfully recorded {quantity}L for {farmer.username}. '
-            f'Estimated payment: KES {estimated_payment:.2f}'
-        )
-        
+        messages.success(request, f'Successfully recorded {quantity}L for {farmer.username}. Est. Farmer Pay: KES {estimated_payment:.2f} | Your Commission: KES {estimated_commission:.2f}')
         return redirect('collector_app:milk_records')
     
     # GET request - Only show farmers allocated to this collector
-    allocations = CollectorAllocation.objects.filter(
-        collector=request.user, 
-        is_active=True
-    ).select_related('farmer')
-    
+    allocations = CollectorAllocation.objects.filter(collector=request.user, is_active=True).select_related('farmer')
     farmers = [allocation.farmer for allocation in allocations]
-    
     return render(request, 'collector_app/collect_milk.html', {'farmers': farmers})
 
 
@@ -169,9 +132,7 @@ def collect_milk(request):
 def milk_records(request):
     records = MilkRecord.objects.filter(collector=request.user).select_related('farmer').order_by('-date_collected')
     total = records.aggregate(total=Sum('quantity'))['total'] or 0
-    return render(request, 'collector_app/milk_records.html', {
-        'records': records, 'total': total
-    })
+    return render(request, 'collector_app/milk_records.html', {'records': records, 'total': total})
 
 
 @login_required
@@ -184,29 +145,18 @@ def view_payments(request):
 @login_required
 @collector_required
 def view_farmers(request):
-    allocations = CollectorAllocation.objects.filter(
-        collector=request.user, is_active=True
-    ).select_related('farmer')
-    
+    allocations = CollectorAllocation.objects.filter(collector=request.user, is_active=True).select_related('farmer')
     farmers_data = []
     for alloc in allocations:
-        total_milk = MilkRecord.objects.filter(
-            farmer=alloc.farmer, collector=request.user
-        ).aggregate(total=Sum('quantity'))['total'] or 0
-        farmers_data.append({
-            'farmer': alloc.farmer,
-            'area': alloc.area,
-            'total_milk': total_milk,
-        })
-    
+        total_milk = MilkRecord.objects.filter(farmer=alloc.farmer, collector=request.user).aggregate(total=Sum('quantity'))['total'] or 0
+        farmers_data.append({'farmer': alloc.farmer, 'area': alloc.area, 'total_milk': total_milk})
     return render(request, 'collector_app/view_farmers.html', {'farmers_data': farmers_data})
 
 
 @login_required
 @collector_required
 def view_profile(request):
-    profile = request.user.profile  # FIXED: Changed farmer_profile to profile
-    return render(request, 'collector_app/view_profile.html', {'profile': profile})
+    return render(request, 'collector_app/view_profile.html', {'profile': request.user.profile})
 
 
 @login_required

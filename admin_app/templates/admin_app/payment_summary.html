@@ -1,0 +1,215 @@
+{% extends 'admin_app/base.html' %}
+{% block page_title %}Payment Summary{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'admin_app:manage_payments' %}">Order Tracking</a></li>
+                <li class="breadcrumb-item active">Payment Summary</li>
+            </ol>
+        </nav>
+        <h1><i class="fas fa-history text-primary me-2"></i>Payment Summary</h1>
+        <p class="text-muted mb-0">Full history of every payment made for feed orders — method, amount, and status.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'admin_app:manage_payments' %}" class="btn btn-outline-custom">
+            <i class="fas fa-truck me-1"></i>Order Tracking
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-custom">
+            <i class="fas fa-print me-1"></i>Print
+        </button>
+    </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon green mx-auto mb-2"><i class="fas fa-check-double"></i></div>
+            <h3 class="mb-0">KES {{ total_completed|floatformat:2 }}</h3>
+            <p class="mb-0">Completed</p>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon orange mx-auto mb-2"><i class="fas fa-clock"></i></div>
+            <h3 class="mb-0">KES {{ total_pending|floatformat:2 }}</h3>
+            <p class="mb-0">Pending</p>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon blue mx-auto mb-2"><i class="fas fa-mobile-alt"></i></div>
+            <h3 class="mb-0">{{ mpesa_count }}</h3>
+            <p class="mb-0">M-Pesa Payments</p>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon purple mx-auto mb-2"><i class="fas fa-tint"></i></div>
+            <h3 class="mb-0">{{ deduction_count }}</h3>
+            <p class="mb-0">Milk Deductions</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card-custom mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                    <option value="Pending"   {% if status_filter == 'Pending'   %}selected{% endif %}>Pending</option>
+                    <option value="Approved"  {% if status_filter == 'Approved'  %}selected{% endif %}>Approved</option>
+                    <option value="Failed"    {% if status_filter == 'Failed'    %}selected{% endif %}>Failed</option>
+                    <option value="Rejected"  {% if status_filter == 'Rejected'  %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted">Payment Method</label>
+                <select name="method" class="form-select form-select-sm">
+                    <option value="">All Methods</option>
+                    <option value="M-Pesa"          {% if method_filter == 'M-Pesa'          %}selected{% endif %}>M-Pesa</option>
+                    <option value="Milk Deduction"  {% if method_filter == 'Milk Deduction'  %}selected{% endif %}>Milk Deduction</option>
+                    <option value="M-Pesa (Test)"   {% if method_filter == 'M-Pesa (Test)'   %}selected{% endif %}>M-Pesa (Test)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary-custom text-white w-100">
+                    <i class="fas fa-search me-1"></i>Filter
+                </button>
+            </div>
+            {% if status_filter or method_filter %}
+            <div class="col-md-2">
+                <a href="{% url 'admin_app:payment_summary' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-times me-1"></i>Clear
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Payments table -->
+<div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-receipt me-2"></i>Payment History</span>
+        <span class="badge bg-primary">{{ payments|length }} record{{ payments|length|pluralize }}</span>
+    </div>
+    <div class="card-body p-0">
+        {% if payments %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">#</th>
+                        <th>Date</th>
+                        <th>Farmer / User</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Receipt</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td class="ps-4 text-muted small">#{{ payment.id }}</td>
+                        <td>
+                            <div class="fw-medium">{{ payment.date_created|date:"M d, Y" }}</div>
+                            <small class="text-muted">{{ payment.date_created|date:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                     style="width:30px;height:30px;font-size:12px;font-weight:700;">
+                                    {{ payment.user.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ payment.user.get_full_name|default:payment.user.username }}</div>
+                                    <small class="text-muted">{{ payment.user.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if payment.payment_type == 'feed_order' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary">Feed Order</span>
+                            {% elif payment.payment_type == 'milk_deduction' %}
+                                <span class="badge bg-info bg-opacity-10 text-info">Milk Deduction</span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">{{ payment.get_payment_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.method == 'M-Pesa' or payment.method == 'M-Pesa (Test)' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-mobile-alt me-1"></i>{{ payment.method }}
+                                </span>
+                            {% elif payment.method == 'Milk Deduction' %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="fas fa-tint me-1"></i>Milk Deduction
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ payment.method|default:"—" }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <code class="small">{{ payment.receipt_number|default:"—" }}</code>
+                        </td>
+                        <td>
+                            <strong class="text-success">KES {{ payment.amount|floatformat:2 }}</strong>
+                        </td>
+                        <td>
+                            {% if payment.status == 'Completed' %}
+                                <span class="badge bg-success"><i class="fas fa-check-double me-1"></i>Completed</span>
+                            {% elif payment.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+                            {% elif payment.status == 'Approved' %}
+                                <span class="badge bg-primary"><i class="fas fa-check me-1"></i>Approved</span>
+                            {% elif payment.status == 'Failed' %}
+                                <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Failed</span>
+                            {% elif payment.status == 'Rejected' %}
+                                <span class="badge bg-danger"><i class="fas fa-ban me-1"></i>Rejected</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ payment.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if payment.status == 'Pending' %}
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'admin_app:approve_payment' payment.id %}"
+                                   class="btn btn-outline-success" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <a href="{% url 'admin_app:reject_payment' payment.id %}"
+                                   class="btn btn-outline-danger" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No payments found</h5>
+            <p class="text-muted small">Try adjusting your filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

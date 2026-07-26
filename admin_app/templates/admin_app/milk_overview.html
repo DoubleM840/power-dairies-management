@@ -67,30 +67,32 @@
 {{ labels|json_script:"overviewLabels" }}
 {{ quantities|json_script:"overviewQuantities" }}
 <script>
-const labels = JSON.parse(document.getElementById('overviewLabels').textContent);
-const quantities = JSON.parse(document.getElementById('overviewQuantities').textContent);
-const ctx = document.getElementById('milkChart').getContext('2d');
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: labels,
-        datasets: [{
-            label: 'Liters',
-            data: quantities,
-            backgroundColor: 'rgba(26,82,118,0.7)',
-            borderColor: '#1a5276',
-            borderWidth: 1,
-            borderRadius: 6,
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-            y: { beginAtZero: true },
-            x: { grid: { display: false } }
+(function() {
+    var labels     = JSON.parse(document.getElementById('overviewLabels').textContent);
+    var quantities = JSON.parse(document.getElementById('overviewQuantities').textContent);
+    var ctx = document.getElementById('milkChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Liters',
+                data: quantities,
+                backgroundColor: 'rgba(26,82,118,0.7)',
+                borderColor: '#1a5276',
+                borderWidth: 1,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true },
+                x: { grid: { display: false } }
+            }
         }
-    }
-});
+    });
+})();
 </script>
 {% endblock %}

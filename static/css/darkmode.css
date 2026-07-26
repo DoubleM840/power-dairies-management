@@ -1,0 +1,470 @@
+/*
+ * Power Dairies — Site-wide Dark Mode
+ * Applied when <body> carries the class  .dark-mode
+ * Toggle is persisted to localStorage under the key  pdDark
+ *
+ * Covers:
+ *   • body / page background
+ *   • top-navbar / page-header
+ *   • sidebar (already dark-coloured — just minor tweaks)
+ *   • stat-cards, card-custom, .card, .table
+ *   • form controls, inputs, selects, textareas
+ *   • modals, dropdowns, alerts, badges
+ *   • Bootstrap utility overrides (bg-white, bg-light, text-dark, etc.)
+ *   • login page
+ *   • scrollbars
+ */
+
+/* ── Transition on everything that changes colour ──────────── */
+body.dark-mode,
+body.dark-mode *,
+body.dark-mode *::before,
+body.dark-mode *::after {
+  transition: background-color 0.25s ease, color 0.25s ease,
+              border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PAGE BASE
+════════════════════════════════════════════════════════════ */
+body.dark-mode {
+  background-color: #0f1117 !important;
+  color: #e2e8f0 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   TOP NAVBAR  (farmer + collector portals)
+════════════════════════════════════════════════════════════ */
+body.dark-mode .top-navbar {
+  background: #1a1f2e !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+  color: #e2e8f0 !important;
+}
+body.dark-mode .top-navbar .page-title { color: #e2e8f0 !important; }
+body.dark-mode .top-navbar a.text-dark  { color: #cbd5e1 !important; }
+body.dark-mode .top-navbar .text-muted  { color: #94a3b8 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   PAGE HEADER  (admin portal)
+════════════════════════════════════════════════════════════ */
+body.dark-mode .page-header {
+  background: #1a1f2e !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+}
+body.dark-mode .page-header h1,
+body.dark-mode .page-header h2,
+body.dark-mode .page-header h3 { color: #e2e8f0 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   CONTENT AREA
+════════════════════════════════════════════════════════════ */
+body.dark-mode .content-area  { background: #0f1117; }
+body.dark-mode .main-content  { background: #0f1117 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   STAT CARDS
+════════════════════════════════════════════════════════════ */
+body.dark-mode .stat-card {
+  background: #1a1f2e !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35) !important;
+  border: 1px solid #2d3748 !important;
+}
+body.dark-mode .stat-card h3 { color: #f1f5f9 !important; }
+body.dark-mode .stat-card p  { color: #94a3b8 !important; }
+body.dark-mode .stat-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+
+/* Icon tint chips — keep hue, darken background */
+body.dark-mode .stat-card .icon.blue   { background: rgba(59,130,246,0.2)  !important; }
+body.dark-mode .stat-card .icon.green  { background: rgba(16,185,129,0.2)  !important; }
+body.dark-mode .stat-card .icon.orange { background: rgba(245,158,11,0.2)  !important; }
+body.dark-mode .stat-card .icon.red    { background: rgba(239,68,68,0.2)   !important; }
+body.dark-mode .stat-card .icon.purple { background: rgba(142,68,173,0.2)  !important; }
+
+/* ════════════════════════════════════════════════════════════
+   CARDS  (.card-custom, Bootstrap .card)
+════════════════════════════════════════════════════════════ */
+body.dark-mode .card-custom,
+body.dark-mode .card {
+  background: #1a1f2e !important;
+  border-color: #2d3748 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
+  color: #e2e8f0 !important;
+}
+body.dark-mode .card-custom .card-header,
+body.dark-mode .card .card-header {
+  background: #1a1f2e !important;
+  border-bottom-color: #2d3748 !important;
+  color: #e2e8f0 !important;
+}
+body.dark-mode .card-custom .card-body,
+body.dark-mode .card .card-body { color: #cbd5e1; }
+body.dark-mode .card-footer {
+  background: #1e2535 !important;
+  border-top-color: #2d3748 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   TABLES
+════════════════════════════════════════════════════════════ */
+body.dark-mode .table {
+  color: #cbd5e1 !important;
+  border-color: #2d3748 !important;
+}
+body.dark-mode .table > :not(caption) > * > * {
+  background-color: transparent !important;
+  border-bottom-color: #2d3748 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: rgba(255,255,255,0.03) !important;
+}
+body.dark-mode .table-hover > tbody > tr:hover > * {
+  background-color: rgba(255,255,255,0.06) !important;
+}
+body.dark-mode thead th {
+  background-color: #1e2535 !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #2d3748 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   FORMS
+════════════════════════════════════════════════════════════ */
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode input[type="text"],
+body.dark-mode input[type="email"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="number"],
+body.dark-mode input[type="date"],
+body.dark-mode input[type="time"],
+body.dark-mode input[type="search"],
+body.dark-mode textarea,
+body.dark-mode select {
+  background-color: #1e2535 !important;
+  color: #e2e8f0 !important;
+  border-color: #374151 !important;
+}
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus,
+body.dark-mode textarea:focus,
+body.dark-mode select:focus {
+  background-color: #1e2535 !important;
+  color: #f1f5f9 !important;
+  border-color: #4f8ef7 !important;
+  box-shadow: 0 0 0 0.2rem rgba(79,142,247,0.2) !important;
+}
+body.dark-mode .form-control::placeholder,
+body.dark-mode textarea::placeholder { color: #6b7280 !important; }
+body.dark-mode .form-label,
+body.dark-mode label { color: #cbd5e1 !important; }
+body.dark-mode .input-group-text {
+  background-color: #2d3748 !important;
+  border-color: #374151 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-mode .form-check-input {
+  background-color: #1e2535 !important;
+  border-color: #4b5563 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODALS
+════════════════════════════════════════════════════════════ */
+body.dark-mode .modal-content {
+  background-color: #1a1f2e !important;
+  color: #e2e8f0 !important;
+  border-color: #2d3748 !important;
+}
+body.dark-mode .modal-header {
+  border-bottom-color: #2d3748 !important;
+}
+body.dark-mode .modal-footer {
+  border-top-color: #2d3748 !important;
+}
+body.dark-mode .modal-title { color: #f1f5f9 !important; }
+body.dark-mode .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* ════════════════════════════════════════════════════════════
+   DROPDOWNS
+════════════════════════════════════════════════════════════ */
+body.dark-mode .dropdown-menu {
+  background-color: #1e2535 !important;
+  border-color: #2d3748 !important;
+}
+body.dark-mode .dropdown-item {
+  color: #cbd5e1 !important;
+}
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+  background-color: #2d3748 !important;
+  color: #f1f5f9 !important;
+}
+body.dark-mode .dropdown-divider { border-color: #374151 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   ALERTS
+════════════════════════════════════════════════════════════ */
+body.dark-mode .alert-success {
+  background-color: #064e3b !important;
+  color: #6ee7b7 !important;
+  border-color: #065f46 !important;
+}
+body.dark-mode .alert-danger {
+  background-color: #450a0a !important;
+  color: #fca5a5 !important;
+  border-color: #7f1d1d !important;
+}
+body.dark-mode .alert-warning {
+  background-color: #431407 !important;
+  color: #fdba74 !important;
+  border-color: #7c2d12 !important;
+}
+body.dark-mode .alert-info {
+  background-color: #0c1a40 !important;
+  color: #93c5fd !important;
+  border-color: #1e3a8a !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BADGES
+════════════════════════════════════════════════════════════ */
+body.dark-mode .badge.bg-light  { background-color: #2d3748 !important; color: #e2e8f0 !important; }
+body.dark-mode .badge.bg-white  { background-color: #1e2535 !important; color: #e2e8f0 !important; }
+body.dark-mode .badge.text-dark { color: #e2e8f0 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   BOOTSTRAP UTILITY OVERRIDES
+════════════════════════════════════════════════════════════ */
+body.dark-mode .bg-white        { background-color: #1a1f2e !important; }
+body.dark-mode .bg-light        { background-color: #1e2535 !important; }
+body.dark-mode .text-dark       { color: #e2e8f0 !important; }
+body.dark-mode .text-muted      { color: #94a3b8 !important; }
+body.dark-mode .text-secondary  { color: #94a3b8 !important; }
+body.dark-mode .border          { border-color: #2d3748 !important; }
+body.dark-mode .border-bottom   { border-bottom-color: #2d3748 !important; }
+body.dark-mode .border-top      { border-top-color: #2d3748 !important; }
+body.dark-mode hr               { border-color: #2d3748 !important; }
+body.dark-mode small,
+body.dark-mode .small           { color: #94a3b8 !important; }
+
+/* List groups */
+body.dark-mode .list-group-item {
+  background-color: #1a1f2e !important;
+  border-color: #2d3748 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-mode .list-group-item:hover { background-color: #1e2535 !important; }
+body.dark-mode .list-group-item.active {
+  background-color: #1e3a8a !important;
+  border-color: #1e3a8a !important;
+}
+
+/* Nav tabs */
+body.dark-mode .nav-tabs { border-bottom-color: #2d3748 !important; }
+body.dark-mode .nav-tabs .nav-link {
+  color: #94a3b8 !important;
+}
+body.dark-mode .nav-tabs .nav-link.active {
+  background-color: #1a1f2e !important;
+  border-color: #2d3748 #2d3748 #1a1f2e !important;
+  color: #93c5fd !important;
+}
+
+/* Pagination */
+body.dark-mode .page-link {
+  background-color: #1e2535 !important;
+  border-color: #2d3748 !important;
+  color: #93c5fd !important;
+}
+body.dark-mode .page-item.active .page-link {
+  background-color: #1e3a8a !important;
+  border-color: #1e3a8a !important;
+  color: #fff !important;
+}
+body.dark-mode .page-item.disabled .page-link { color: #4b5563 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   SCROLLBAR  (Webkit)
+════════════════════════════════════════════════════════════ */
+body.dark-mode ::-webkit-scrollbar       { width: 8px; height: 8px; }
+body.dark-mode ::-webkit-scrollbar-track { background: #1a1f2e; }
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+body.dark-mode ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+/* ════════════════════════════════════════════════════════════
+   DARK-MODE TOGGLE BUTTON  (shared style, used by all portals)
+════════════════════════════════════════════════════════════ */
+.dm-toggle {
+  background: none;
+  border: 1px solid rgba(128,128,128,0.3);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  color: inherit;
+  white-space: nowrap;
+}
+.dm-toggle:hover {
+  background: rgba(128,128,128,0.12);
+}
+.dm-toggle .dm-label {
+  font-size: 12px;
+  font-weight: 500;
+  display: none;          /* hidden on small screens */
+}
+@media (min-width: 576px) {
+  .dm-toggle .dm-label { display: inline; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOGIN PAGE dark mode
+════════════════════════════════════════════════════════════ */
+body.dark-mode.login-dark .login-container {
+  background: #1a1f2e !important;
+}
+body.dark-mode.login-dark .login-right {
+  background: #1a1f2e !important;
+}
+body.dark-mode.login-dark .login-header h2 { color: #93c5fd !important; }
+body.dark-mode.login-dark .login-header p  { color: #94a3b8 !important; }
+body.dark-mode.login-dark .divider span    { background: #1a1f2e !important; color: #6b7280 !important; }
+body.dark-mode.login-dark .divider::before { background: #2d3748 !important; }
+body.dark-mode.login-dark .btn-register-farmer {
+  background: #1e2535 !important;
+  color: #93c5fd !important;
+  border-color: #2d3748 !important;
+}
+body.dark-mode.login-dark .btn-register-farmer:hover {
+  background: #1e3a8a !important;
+  color: #fff !important;
+}
+body.dark-mode.login-dark .btn-register-collector {
+  background: #2d2008 !important;
+  color: #fdba74 !important;
+  border-color: #451a03 !important;
+}
+body.dark-mode.login-dark .btn-register-collector:hover {
+  background: #78350f !important;
+  color: #fff !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   DARK MODE TOGGLE — position helper used by login page
+════════════════════════════════════════════════════════════ */
+.login-dm-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s;
+}
+.login-dm-btn:hover { background: rgba(255,255,255,0.3); }
+body.dark-mode .login-dm-btn {
+  background: rgba(30,35,50,0.85) !important;
+  border-color: #374151 !important;
+  color: #e2e8f0 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ADMIN PORTAL — specific dark mode overrides
+   (admin uses .page-header, .main-content, .card-custom,
+    .stat-card, and .breadcrumb — all covered by shared rules
+    above, but the admin bg-light body and white page-header
+    need explicit overrides below)
+════════════════════════════════════════════════════════════ */
+
+/* Admin main-content wrapper background */
+body.dark-mode .main-content {
+  background: #0f1117 !important;
+}
+
+/* Admin page-header (white card at top of each page) */
+body.dark-mode .page-header {
+  background: #1a1f2e !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+  border-color: #2d3748 !important;
+}
+body.dark-mode .page-header h1 { color: #e2e8f0 !important; }
+body.dark-mode .page-header h1 i { color: #93c5fd !important; }
+body.dark-mode .page-header .breadcrumb-item a { color: #93c5fd !important; }
+body.dark-mode .page-header .breadcrumb-item.active { color: #94a3b8 !important; }
+body.dark-mode .page-header .breadcrumb-item + .breadcrumb-item::before { color: #4b5563 !important; }
+
+/* Admin top-bar (dm-toggle row) */
+body.dark-mode #admin-topbar {
+  background: transparent;
+}
+
+/* btn-primary-custom in dark mode */
+body.dark-mode .btn-primary-custom {
+  background: #1e3a8a !important;
+  border-color: #1e3a8a !important;
+  color: #fff !important;
+}
+body.dark-mode .btn-primary-custom:hover {
+  background: #1e40af !important;
+}
+body.dark-mode .btn-outline-custom {
+  color: #93c5fd !important;
+  border-color: rgba(147,197,253,0.4) !important;
+}
+body.dark-mode .btn-outline-custom:hover {
+  background: rgba(147,197,253,0.1) !important;
+}
+
+/* Admin sidebar — already dark-blue, just soften the active highlight */
+body.dark-mode .sidebar .nav-link.active {
+  background: rgba(255,255,255,0.18) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   COLLECTOR PORTAL — top-navbar sticky bar
+════════════════════════════════════════════════════════════ */
+body.dark-mode .top-navbar {
+  background: #1a1f2e !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+}
+body.dark-mode .top-navbar .page-title { color: #e2e8f0 !important; }
+
+/* notification badge readable in dark mode */
+body.dark-mode .notification-badge {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   FARMER PORTAL — nav-section labels in sidebar
+════════════════════════════════════════════════════════════ */
+body.dark-mode .sidebar .nav-section {
+  color: rgba(255,255,255,0.45) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CHART.JS canvas — keep charts visible in dark mode
+════════════════════════════════════════════════════════════ */
+body.dark-mode canvas {
+  filter: brightness(0.92) contrast(1.05);
+}

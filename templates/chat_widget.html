@@ -1,0 +1,799 @@
+{% load static %}
+{% if user.is_authenticated %}
+<!-- ================================================================
+     DairyBot Chat Widget  v2
+     Features: dark mode · context-aware chat · Swahili · image
+               analysis · live weather · chat history
+================================================================ -->
+<style>
+/* ── CSS custom properties — light defaults ──────────────────── */
+#dairybot-panel, #dairybot-panel * { box-sizing: border-box; }
+
+#dairybot-panel {
+  --db-bg:          #ffffff;
+  --db-bg2:         #f9fafb;
+  --db-bg3:         #f3f4f6;
+  --db-border:      #e5e7eb;
+  --db-text:        #1f2937;
+  --db-muted:       #6b7280;
+  --db-bubble-bot:  #ffffff;
+  --db-bubble-user: linear-gradient(135deg,#1e3a8a,#3730a3);
+  --db-bubble-text: #1f2937;
+  --db-input-bg:    #ffffff;
+  --db-input-bdr:   #d1d5db;
+  --db-tag-bg:      #dbeafe;
+  --db-tag-txt:     #1e3a8a;
+  --db-wthr-bg:     #eff6ff;
+  --db-wthr-bdr:    #bfdbfe;
+  --db-wthr-txt:    #1e40af;
+  --db-shadow:      rgba(0,0,0,.18);
+}
+
+/* ── Dark-mode overrides ─────────────────────────────────────── */
+#dairybot-panel.db-dark {
+  --db-bg:          #1e2433;
+  --db-bg2:         #161b27;
+  --db-bg3:         #242b3d;
+  --db-border:      #374151;
+  --db-text:        #f3f4f6;
+  --db-muted:       #9ca3af;
+  --db-bubble-bot:  #2d3748;
+  --db-bubble-text: #f3f4f6;
+  --db-input-bg:    #2d3748;
+  --db-input-bdr:   #4b5563;
+  --db-tag-bg:      #1e3a5f;
+  --db-tag-txt:     #93c5fd;
+  --db-wthr-bg:     #1e2d45;
+  --db-wthr-bdr:    #2d4a6e;
+  --db-wthr-txt:    #93c5fd;
+  --db-shadow:      rgba(0,0,0,.45);
+}
+
+/* ── Floating toggle ─────────────────────────────────────────── */
+#dairybot-toggle {
+  position:fixed; bottom:24px; right:24px; z-index:9998;
+  width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg,#1e3a8a,#3730a3);
+  color:#fff; border:none; font-size:22px;
+  box-shadow:0 4px 16px rgba(30,58,138,.45);
+  cursor:pointer; display:flex; align-items:center;
+  justify-content:center; transition:transform .2s;
+}
+#dairybot-toggle:hover { transform:scale(1.08); }
+#dbot-badge {
+  position:absolute; top:-4px; right:-4px;
+  background:#ef4444; color:#fff; border-radius:50%;
+  width:18px; height:18px; font-size:10px; font-weight:700;
+  display:none; align-items:center; justify-content:center;
+}
+
+/* ── Panel ───────────────────────────────────────────────────── */
+#dairybot-panel {
+  position:fixed; bottom:90px; right:24px; z-index:9999;
+  width:370px; max-height:580px;
+  background:var(--db-bg); border-radius:16px;
+  box-shadow:0 8px 32px var(--db-shadow);
+  display:none; flex-direction:column; overflow:hidden;
+  font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+  transition:background .25s, box-shadow .25s;
+}
+#dairybot-panel.open { display:flex; }
+
+/* ── Header ──────────────────────────────────────────────────── */
+.dbot-header {
+  background:linear-gradient(135deg,#1e3a8a,#3730a3);
+  color:#fff; padding:12px 14px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-radius:16px 16px 0 0; flex-shrink:0;
+}
+.dbot-header-left { display:flex; align-items:center; gap:10px; }
+.dbot-avatar {
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(255,255,255,.2);
+  display:flex; align-items:center; justify-content:center; font-size:17px;
+}
+.dbot-title  { font-weight:700; font-size:15px; line-height:1.2; }
+.dbot-subtitle { font-size:11px; opacity:.8; }
+.dbot-header-btns { display:flex; gap:5px; }
+.dbot-header-btns button {
+  background:rgba(255,255,255,.15); border:none; color:#fff;
+  border-radius:7px; padding:4px 8px; font-size:12px;
+  cursor:pointer; transition:background .15s;
+}
+.dbot-header-btns button:hover { background:rgba(255,255,255,.32); }
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.dbot-tabs {
+  display:flex; border-bottom:1px solid var(--db-border);
+  background:var(--db-bg2); flex-shrink:0;
+}
+.dbot-tab {
+  flex:1; padding:8px 4px; font-size:11.5px; font-weight:500;
+  text-align:center; cursor:pointer; color:var(--db-muted);
+  border-bottom:2px solid transparent; transition:all .15s;
+  white-space:nowrap;
+}
+.dbot-tab.active {
+  color:#1e3a8a; border-bottom-color:#1e3a8a;
+  background:var(--db-bg);
+}
+#dairybot-panel.db-dark .dbot-tab.active {
+  color:#93c5fd; border-bottom-color:#93c5fd;
+}
+
+/* ── Language + context bar ──────────────────────────────────── */
+.dbot-lang {
+  padding:5px 12px; background:var(--db-bg3);
+  border-bottom:1px solid var(--db-border);
+  display:flex; gap:6px; align-items:center; font-size:11.5px;
+  flex-shrink:0;
+}
+.dbot-lang span { color:var(--db-muted); }
+.dbot-lang-btn {
+  padding:2px 10px; border-radius:20px; border:1px solid var(--db-input-bdr);
+  background:var(--db-input-bg); font-size:11px; cursor:pointer;
+  color:var(--db-text); transition:all .15s;
+}
+.dbot-lang-btn.active {
+  background:#1e3a8a; color:#fff; border-color:#1e3a8a;
+}
+
+/* ── Weather banner ──────────────────────────────────────────── */
+.dbot-weather-bar {
+  margin:8px 10px 0; padding:7px 10px; border-radius:10px;
+  background:var(--db-wthr-bg); border:1px solid var(--db-wthr-bdr);
+  color:var(--db-wthr-txt); font-size:11.5px; line-height:1.4;
+  display:none; flex-wrap:wrap; gap:10px; align-items:center;
+  flex-shrink:0;
+}
+.dbot-weather-bar.visible { display:flex; }
+.dbot-wthr-item { display:flex; align-items:center; gap:4px; }
+
+/* ── Messages ────────────────────────────────────────────────── */
+.dbot-messages {
+  flex:1; overflow-y:auto; padding:10px 10px 4px;
+  display:flex; flex-direction:column; gap:8px;
+  background:var(--db-bg2); min-height:200px;
+}
+.dbot-msg { display:flex; gap:6px; max-width:100%; }
+.dbot-msg.user { flex-direction:row-reverse; }
+.dbot-bubble {
+  padding:8px 12px; border-radius:14px; font-size:13px;
+  line-height:1.5; max-width:82%; word-wrap:break-word;
+  color:var(--db-text);
+}
+.dbot-msg.bot .dbot-bubble {
+  background:var(--db-bubble-bot); color:var(--db-bubble-text);
+  border:1px solid var(--db-border); border-radius:4px 14px 14px 14px;
+}
+.dbot-msg.user .dbot-bubble {
+  background:var(--db-bubble-user); color:#fff;
+  border-radius:14px 4px 14px 14px;
+}
+.dbot-msg-icon {
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; margin-top:2px;
+  background:var(--db-tag-bg); color:var(--db-tag-txt);
+}
+
+/* ── Typing dots ─────────────────────────────────────────────── */
+.dbot-typing span {
+  display:inline-block; width:7px; height:7px;
+  border-radius:50%; background:var(--db-muted);
+  animation:dbot-bounce .9s infinite;
+}
+.dbot-typing span:nth-child(2){animation-delay:.15s}
+.dbot-typing span:nth-child(3){animation-delay:.3s}
+@keyframes dbot-bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ── Input bar ───────────────────────────────────────────────── */
+.dbot-input-area {
+  padding:9px 10px; border-top:1px solid var(--db-border);
+  display:flex; gap:6px; align-items:flex-end;
+  background:var(--db-bg); flex-shrink:0;
+}
+.dbot-input-area textarea {
+  flex:1; border:1px solid var(--db-input-bdr);
+  border-radius:10px; padding:7px 10px; font-size:13px;
+  resize:none; font-family:inherit; max-height:80px;
+  overflow-y:auto; outline:none; transition:border-color .15s;
+  background:var(--db-input-bg); color:var(--db-text);
+}
+.dbot-input-area textarea::placeholder { color:var(--db-muted); }
+.dbot-input-area textarea:focus { border-color:#1e3a8a; }
+.dbot-send-btn {
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  background:linear-gradient(135deg,#1e3a8a,#3730a3);
+  color:#fff; border:none; cursor:pointer; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  transition:opacity .15s;
+}
+.dbot-send-btn:disabled { opacity:.45; cursor:default; }
+
+/* ── Image tab ───────────────────────────────────────────────── */
+.dbot-image-area {
+  flex:1; padding:14px; display:flex; flex-direction:column;
+  gap:10px; overflow-y:auto; background:var(--db-bg);
+}
+.dbot-drop-zone {
+  border:2px dashed var(--db-input-bdr); border-radius:12px;
+  padding:22px; text-align:center; cursor:pointer;
+  color:var(--db-muted); font-size:13px; transition:all .15s;
+}
+.dbot-drop-zone:hover { border-color:#1e3a8a; color:#1e3a8a; }
+.dbot-drop-zone i { font-size:26px; margin-bottom:6px; display:block; }
+#dbot-img-preview {
+  max-width:100%; border-radius:8px; display:none;
+  border:1px solid var(--db-border);
+}
+.dbot-analyze-btn, .dbot-clear-img-btn {
+  width:100%; padding:9px; border-radius:10px; border:none;
+  font-size:13px; font-weight:500; cursor:pointer; display:none;
+}
+.dbot-analyze-btn {
+  background:linear-gradient(135deg,#1e3a8a,#3730a3); color:#fff;
+}
+.dbot-clear-img-btn {
+  background:var(--db-bg3); color:var(--db-muted);
+  border:1px solid var(--db-border);
+}
+.dbot-analyze-btn:disabled { opacity:.5; cursor:default; }
+.dbot-analysis-result {
+  font-size:12.5px; line-height:1.55; color:var(--db-text);
+  background:var(--db-bg3); border-radius:10px; padding:10px;
+  border:1px solid var(--db-border); display:none;
+}
+
+/* ── Weather full tab ────────────────────────────────────────── */
+.dbot-weather-full {
+  flex:1; padding:14px; overflow-y:auto; background:var(--db-bg);
+}
+.dbot-wthr-card {
+  background:var(--db-wthr-bg); border:1px solid var(--db-wthr-bdr);
+  border-radius:14px; padding:16px; color:var(--db-wthr-txt);
+  margin-bottom:10px;
+}
+.dbot-wthr-card h4 { margin:0 0 8px; font-size:14px; font-weight:600; }
+.dbot-wthr-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.dbot-wthr-stat {
+  background:var(--db-bg); border-radius:10px; padding:8px 10px;
+  border:1px solid var(--db-border); font-size:12.5px;
+  color:var(--db-text);
+}
+.dbot-wthr-stat strong { display:block; font-size:18px; color:var(--db-wthr-txt); }
+.dbot-wthr-advice {
+  background:var(--db-bg3); border-radius:12px; padding:10px 12px;
+  font-size:12.5px; color:var(--db-text); border:1px solid var(--db-border);
+  line-height:1.5;
+}
+.dbot-wthr-loc {
+  display:flex; gap:8px; align-items:center; margin-bottom:10px;
+}
+.dbot-wthr-loc input {
+  flex:1; padding:6px 10px; border-radius:8px; font-size:12px;
+  border:1px solid var(--db-input-bdr); background:var(--db-input-bg);
+  color:var(--db-text); outline:none;
+}
+.dbot-wthr-loc button {
+  padding:6px 12px; border-radius:8px; font-size:12px;
+  background:linear-gradient(135deg,#1e3a8a,#3730a3);
+  color:#fff; border:none; cursor:pointer;
+}
+
+/* ── History tab ─────────────────────────────────────────────── */
+.dbot-history-area { flex:1; overflow-y:auto; background:var(--db-bg); }
+.dbot-history-item {
+  padding:9px 12px; display:flex; gap:8px; align-items:center;
+  font-size:12.5px; border-bottom:1px solid var(--db-border);
+  cursor:pointer; transition:background .12s; color:var(--db-text);
+}
+.dbot-history-item:hover { background:var(--db-bg3); }
+.dbot-history-text { flex:1; min-width:0; }
+.dbot-history-title {
+  font-weight:500; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.dbot-history-meta { color:var(--db-muted); font-size:11px; margin-top:2px; }
+.dbot-del-btn {
+  background:none; border:none; color:#ef4444;
+  cursor:pointer; padding:2px 5px; font-size:13px; opacity:.55;
+  flex-shrink:0;
+}
+.dbot-del-btn:hover { opacity:1; }
+.dbot-empty {
+  text-align:center; color:var(--db-muted);
+  font-size:13px; padding:28px 16px; line-height:1.6;
+}
+</style>
+
+<!-- ── Toggle button ─────────────────────────────────────────── -->
+<div style="position:relative;display:inline-block;">
+  <button id="dairybot-toggle" title="DairyBot AI" aria-label="Open DairyBot">
+    <i class="fas fa-comments"></i>
+  </button>
+  <div id="dbot-badge" aria-hidden="true"></div>
+</div>
+
+<!-- ── Panel ─────────────────────────────────────────────────── -->
+<div id="dairybot-panel" role="dialog" aria-modal="true" aria-label="DairyBot Assistant">
+
+  <!-- Header -->
+  <div class="dbot-header">
+    <div class="dbot-header-left">
+      <div class="dbot-avatar"><i class="fas fa-robot"></i></div>
+      <div>
+        <div class="dbot-title">DairyBot <span id="dbot-online-dot" style="display:inline-block;width:7px;height:7px;background:#4ade80;border-radius:50%;vertical-align:middle;margin-left:3px;"></span></div>
+        <div class="dbot-subtitle" id="dbot-status-txt">AI Dairy Assistant</div>
+      </div>
+    </div>
+    <div class="dbot-header-btns">
+      <button id="dbot-dark-btn" title="Toggle dark mode" aria-label="Dark mode"><i class="fas fa-moon"></i></button>
+      <button id="dbot-new-btn"  title="New chat"         aria-label="New chat"><i class="fas fa-plus"></i></button>
+      <button id="dbot-close-btn" title="Close"           aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="dbot-tabs" role="tablist">
+    <div class="dbot-tab active" data-tab="chat"    role="tab" tabindex="0"><i class="fas fa-comment-dots"></i> Chat</div>
+    <div class="dbot-tab"        data-tab="image"   role="tab" tabindex="0"><i class="fas fa-camera"></i> Analyze</div>
+    <div class="dbot-tab"        data-tab="weather" role="tab" tabindex="0"><i class="fas fa-cloud-sun"></i> Weather</div>
+    <div class="dbot-tab"        data-tab="history" role="tab" tabindex="0"><i class="fas fa-history"></i> History</div>
+  </div>
+
+  <!-- Language bar (chat only) -->
+  <div class="dbot-lang" id="dbot-lang-bar">
+    <span>Lang:</span>
+    <button class="dbot-lang-btn active" data-lang="en">🇬🇧 English</button>
+    <button class="dbot-lang-btn"        data-lang="sw">🇰🇪 Kiswahili</button>
+  </div>
+
+  <!-- Weather mini-banner (chat tab) -->
+  <div class="dbot-weather-bar" id="dbot-wthr-banner" aria-live="polite"></div>
+
+  <!-- ── CHAT TAB ──────────────────────────────────────────── -->
+  <div id="dbot-tab-chat" style="display:flex;flex-direction:column;flex:1;overflow:hidden;" role="tabpanel">
+    <div class="dbot-messages" id="dbot-messages" aria-live="polite" aria-label="Chat messages">
+      <div class="dbot-msg bot">
+        <div class="dbot-msg-icon"><i class="fas fa-robot"></i></div>
+        <div class="dbot-bubble">
+          Hello! I'm <strong>DairyBot</strong> 🐄<br>
+          Ask me anything about dairy farming — cows, feed, milk, or your farm data.<br>
+          <small style="opacity:.7">Switch to Kiswahili with the button above.</small>
+        </div>
+      </div>
+    </div>
+    <div class="dbot-input-area">
+      <textarea id="dbot-input" rows="1" placeholder="Ask about cows, feed, milk…" aria-label="Message input"></textarea>
+      <button class="dbot-send-btn" id="dbot-send-btn" aria-label="Send message">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── IMAGE TAB ─────────────────────────────────────────── -->
+  <div id="dbot-tab-image" style="display:none;flex:1;overflow:hidden;" role="tabpanel">
+    <div class="dbot-image-area">
+      <div class="dbot-drop-zone" id="dbot-drop-zone" tabindex="0" role="button" aria-label="Upload cow photo">
+        <i class="fas fa-cloud-upload-alt"></i>
+        Click or drag a cow photo here<br>
+        <small>JPG / PNG · max 10 MB</small>
+      </div>
+      <input type="file" id="dbot-file-input" accept="image/*" style="display:none;" aria-hidden="true">
+      <img id="dbot-img-preview" alt="Uploaded cow photo">
+      <button class="dbot-analyze-btn" id="dbot-analyze-btn">
+        <i class="fas fa-stethoscope"></i> Analyze Health
+      </button>
+      <button class="dbot-clear-img-btn" id="dbot-clear-img-btn">
+        <i class="fas fa-trash-alt"></i> Clear image
+      </button>
+      <div class="dbot-analysis-result" id="dbot-analysis-result" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- ── WEATHER TAB ───────────────────────────────────────── -->
+  <div id="dbot-tab-weather" style="display:none;flex:1;overflow:hidden;" role="tabpanel">
+    <div class="dbot-weather-full" id="dbot-weather-full">
+      <div class="dbot-wthr-loc">
+        <input id="dbot-wthr-lat" type="number" step="0.0001" value="-1.2921" placeholder="Latitude" aria-label="Latitude">
+        <input id="dbot-wthr-lon" type="number" step="0.0001" value="36.8219" placeholder="Longitude" aria-label="Longitude">
+        <button id="dbot-wthr-go"><i class="fas fa-sync-alt"></i> Refresh</button>
+      </div>
+      <div id="dbot-wthr-content">
+        <div class="dbot-empty"><i class="fas fa-spinner fa-spin"></i><br>Loading weather…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY TAB ───────────────────────────────────────── -->
+  <div id="dbot-tab-history" style="display:none;flex:1;overflow:hidden;" role="tabpanel">
+    <div class="dbot-history-area" id="dbot-history-list">
+      <div class="dbot-empty"><i class="fas fa-inbox"></i><br>No previous chats</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ── Helpers ─────────────────────────────────────────────────── */
+function csrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function md(s) {
+  return esc(s)
+    .replace(/\n/g,'<br>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">$1</code>');
+}
+function ls(k,v) { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); } catch(e){} }
+
+/* ── State ───────────────────────────────────────────────────── */
+let sessionId   = null;
+let lang        = 'en';
+let selectedFile= null;
+let weatherCtx  = null;   // plain-text weather summary for system prompt
+let weatherData = null;   // full object
+let dark        = ls('dbot_dark') === '1';
+
+/* ── Elements ────────────────────────────────────────────────── */
+const panel     = document.getElementById('dairybot-panel');
+const toggle    = document.getElementById('dairybot-toggle');
+const closeBtn  = document.getElementById('dbot-close-btn');
+const darkBtn   = document.getElementById('dbot-dark-btn');
+const newBtn    = document.getElementById('dbot-new-btn');
+const msgArea   = document.getElementById('dbot-messages');
+const input     = document.getElementById('dbot-input');
+const sendBtn   = document.getElementById('dbot-send-btn');
+const langBar   = document.getElementById('dbot-lang-bar');
+const wthrBanner= document.getElementById('dbot-wthr-banner');
+const statusTxt = document.getElementById('dbot-status-txt');
+
+/* ── Dark mode ───────────────────────────────────────────────── */
+function applyDark(on) {
+  dark = on;
+  panel.classList.toggle('db-dark', on);
+  darkBtn.innerHTML = on
+    ? '<i class="fas fa-sun"></i>'
+    : '<i class="fas fa-moon"></i>';
+  darkBtn.title = on ? 'Light mode' : 'Dark mode';
+  ls('dbot_dark', on ? '1' : '0');
+}
+applyDark(dark);
+darkBtn.addEventListener('click', () => applyDark(!dark));
+
+/* ── Open / close ────────────────────────────────────────────── */
+toggle.addEventListener('click', () => {
+  const opening = !panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if (opening) { input.focus(); fetchWeather(); }
+});
+closeBtn.addEventListener('click', () => panel.classList.remove('open'));
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+function switchTab(name) {
+  document.querySelectorAll('.dbot-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.dbot-tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById('dbot-tab-chat').style.display    = name==='chat'    ? 'flex':'none';
+  document.getElementById('dbot-tab-image').style.display   = name==='image'   ? 'flex':'none';
+  document.getElementById('dbot-tab-weather').style.display = name==='weather' ? 'flex':'none';
+  document.getElementById('dbot-tab-history').style.display = name==='history' ? 'flex':'none';
+  langBar.style.display    = name==='chat'    ? 'flex':'none';
+  wthrBanner.style.display = name==='chat'    ? ''    :'none';
+  if (name==='history') loadHistory();
+  if (name==='weather') renderWeather();
+}
+document.querySelectorAll('.dbot-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  tab.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') switchTab(tab.dataset.tab); });
+});
+
+/* ── Language ────────────────────────────────────────────────── */
+document.querySelectorAll('.dbot-lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dbot-lang-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    lang = btn.dataset.lang;
+  });
+});
+
+/* ── New chat ────────────────────────────────────────────────── */
+function resetChat(msg) {
+  sessionId = null;
+  msgArea.innerHTML = `
+    <div class="dbot-msg bot">
+      <div class="dbot-msg-icon"><i class="fas fa-robot"></i></div>
+      <div class="dbot-bubble">${msg||'New chat started! How can I help? 🐄'}</div>
+    </div>`;
+}
+newBtn.addEventListener('click', () => resetChat());
+
+/* ── Message rendering ───────────────────────────────────────── */
+function addMsg(role, text) {
+  const d = document.createElement('div');
+  d.className = `dbot-msg ${role==='user'?'user':'bot'}`;
+  d.innerHTML = `
+    <div class="dbot-msg-icon"><i class="fas ${role==='user'?'fa-user':'fa-robot'}"></i></div>
+    <div class="dbot-bubble">${md(text)}</div>`;
+  msgArea.appendChild(d);
+  msgArea.scrollTop = msgArea.scrollHeight;
+}
+function showTyping() {
+  const el = document.createElement('div');
+  el.className='dbot-msg bot'; el.id='dbot-typing';
+  el.innerHTML=`<div class="dbot-msg-icon"><i class="fas fa-robot"></i></div>
+    <div class="dbot-bubble dbot-typing"><span></span><span></span><span></span></div>`;
+  msgArea.appendChild(el); msgArea.scrollTop=msgArea.scrollHeight;
+}
+function removeTyping(){ const e=document.getElementById('dbot-typing'); if(e)e.remove(); }
+
+/* ── Send message (context-aware) ───────────────────────────── */
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value=''; input.style.height='auto';
+  sendBtn.disabled=true; statusTxt.textContent='Thinking…';
+
+  addMsg('user', text);
+  showTyping();
+
+  try {
+    const res = await fetch('/api/chat/chat/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body: JSON.stringify({
+        message: text,
+        language: lang,
+        session_id: sessionId,
+        weather_context: weatherCtx   // inject live weather into system prompt
+      })
+    });
+    const data = await res.json();
+    removeTyping();
+    if (data.session_id) sessionId = data.session_id;
+    addMsg('bot', data.response || 'Sorry, something went wrong.');
+    statusTxt.textContent='AI Dairy Assistant';
+  } catch(e) {
+    removeTyping();
+    addMsg('bot', 'Network error. Please check your connection.');
+    statusTxt.textContent='AI Dairy Assistant';
+  } finally {
+    sendBtn.disabled=false;
+    input.focus();
+  }
+}
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keydown', e => {
+  if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+});
+input.addEventListener('input', () => {
+  input.style.height='auto';
+  input.style.height=Math.min(input.scrollHeight,80)+'px';
+});
+
+/* ── Weather ─────────────────────────────────────────────────── */
+const WMO_ICON = {
+  0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',
+  51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',
+  71:'❄️',73:'❄️',75:'❄️',80:'🌦',81:'🌦',82:'⛈',
+  95:'⛈',96:'⛈',99:'⛈'
+};
+
+function weatherAdvice(w) {
+  const lines=[];
+  if(w.precipitation_mm>5)     lines.push('🌧 Rain expected — keep cows sheltered and check drainage.');
+  if(w.temperature_c>30)       lines.push('🌡️ Hot weather — ensure adequate water and shade for your herd.');
+  if(w.temperature_c<10)       lines.push('🥶 Cold weather — provide extra feed and dry bedding.');
+  if(w.wind_kmh>40)            lines.push('💨 Strong winds — secure feed storage and check for damage.');
+  if(w.humidity_pct>85)        lines.push('💧 High humidity — watch for mastitis and fungal infections.');
+  if(!lines.length)            lines.push('✅ Good conditions — normal farm operations.');
+  return lines.join('<br>');
+}
+
+async function fetchWeather(lat, lon) {
+  lat = lat || document.getElementById('dbot-wthr-lat')?.value || '-1.2921';
+  lon = lon || document.getElementById('dbot-wthr-lon')?.value || '36.8219';
+  try {
+    const res = await fetch(`/api/chat/weather/?lat=${lat}&lon=${lon}`);
+    const data = await res.json();
+    if (data.ok) {
+      weatherData = data.weather;
+      weatherCtx  = data.weather.summary;   // fed into system prompt
+
+      // Mini banner in chat tab
+      const icon = WMO_ICON[Math.round(data.weather.temperature_c)] || '🌡️';
+      wthrBanner.innerHTML =
+        `<span class="dbot-wthr-item">☀️ ${esc(data.weather.description)}</span>
+         <span class="dbot-wthr-item">🌡️ ${data.weather.temperature_c}°C</span>
+         <span class="dbot-wthr-item">💧 ${data.weather.humidity_pct}%</span>
+         <span class="dbot-wthr-item">💨 ${data.weather.wind_kmh} km/h</span>`;
+      wthrBanner.classList.add('visible');
+    }
+  } catch(e) { /* non-critical */ }
+}
+
+function renderWeather() {
+  const el = document.getElementById('dbot-wthr-content');
+  if (!weatherData) {
+    el.innerHTML='<div class="dbot-empty"><i class="fas fa-spinner fa-spin"></i><br>Loading…</div>';
+    fetchWeather().then(renderWeather);
+    return;
+  }
+  const w = weatherData;
+  el.innerHTML = `
+    <div class="dbot-wthr-card">
+      <h4>Current Conditions — ${w.description}</h4>
+      <div class="dbot-wthr-grid">
+        <div class="dbot-wthr-stat"><strong>${w.temperature_c}°C</strong>Temperature</div>
+        <div class="dbot-wthr-stat"><strong>${w.humidity_pct}%</strong>Humidity</div>
+        <div class="dbot-wthr-stat"><strong>${w.wind_kmh} km/h</strong>Wind Speed</div>
+        <div class="dbot-wthr-stat"><strong>${w.precipitation_mm} mm</strong>Precipitation</div>
+      </div>
+    </div>
+    <div class="dbot-wthr-advice"><strong>🌾 Farming Advice</strong><br>${weatherAdvice(w)}</div>`;
+}
+
+document.getElementById('dbot-wthr-go').addEventListener('click', async () => {
+  const lat = document.getElementById('dbot-wthr-lat').value;
+  const lon = document.getElementById('dbot-wthr-lon').value;
+  weatherData = null;
+  document.getElementById('dbot-wthr-content').innerHTML =
+    '<div class="dbot-empty"><i class="fas fa-spinner fa-spin"></i><br>Refreshing…</div>';
+  await fetchWeather(lat, lon);
+  renderWeather();
+});
+
+/* ── Image analysis ──────────────────────────────────────────── */
+const dropZone   = document.getElementById('dbot-drop-zone');
+const fileInput  = document.getElementById('dbot-file-input');
+const imgPreview = document.getElementById('dbot-img-preview');
+const analyzeBtn = document.getElementById('dbot-analyze-btn');
+const clearBtn   = document.getElementById('dbot-clear-img-btn');
+const resultBox  = document.getElementById('dbot-analysis-result');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ')fileInput.click(); });
+dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.style.borderColor='#1e3a8a'; });
+dropZone.addEventListener('dragleave', ()=>{ dropZone.style.borderColor=''; });
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault(); dropZone.style.borderColor='';
+  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', ()=>{ if(fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  if (file.size > 10*1024*1024) {
+    alert('Image is too large (max 10 MB).');
+    return;
+  }
+  selectedFile = file;
+  imgPreview.src = URL.createObjectURL(file);
+  imgPreview.style.display='block';
+  analyzeBtn.style.display='block';
+  clearBtn.style.display='block';
+  resultBox.style.display='none';
+  resultBox.innerHTML='';
+}
+
+clearBtn.addEventListener('click', () => {
+  selectedFile=null;
+  imgPreview.src=''; imgPreview.style.display='none';
+  analyzeBtn.style.display='none';
+  clearBtn.style.display='none';
+  resultBox.style.display='none'; resultBox.innerHTML='';
+  fileInput.value='';
+});
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  analyzeBtn.disabled=true;
+  analyzeBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Analyzing…';
+  resultBox.style.display='none';
+
+  const form = new FormData();
+  form.append('image', selectedFile);
+  try {
+    const res = await fetch('/api/chat/analyze-image/', {
+      method:'POST', headers:{'X-CSRFToken':csrf()}, body:form
+    });
+    const data = await res.json();
+    resultBox.innerHTML = md(data.analysis || 'No analysis returned.');
+    resultBox.style.display='block';
+  } catch(e) {
+    resultBox.innerHTML='Analysis failed. Please try again.';
+    resultBox.style.display='block';
+  } finally {
+    analyzeBtn.disabled=false;
+    analyzeBtn.innerHTML='<i class="fas fa-stethoscope"></i> Analyze Health';
+  }
+});
+
+/* ── Chat history ────────────────────────────────────────────── */
+async function loadHistory() {
+  const list = document.getElementById('dbot-history-list');
+  list.innerHTML='<div class="dbot-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+  try {
+    const res  = await fetch('/api/chat/chat-history/');
+    const data = await res.json();
+    if (!data.history || !data.history.length) {
+      list.innerHTML='<div class="dbot-empty"><i class="fas fa-inbox"></i><br>No previous chats</div>';
+      return;
+    }
+    list.innerHTML='';
+    data.history.forEach(s => {
+      const item = document.createElement('div');
+      item.className='dbot-history-item';
+      item.innerHTML=`
+        <div class="dbot-history-text" data-id="${s.id}" tabindex="0" role="button">
+          <div class="dbot-history-title">${esc(s.title)}</div>
+          <div class="dbot-history-meta">${s.created_at} · ${s.message_count} msgs</div>
+        </div>
+        <button class="dbot-del-btn" data-id="${s.id}" title="Delete chat" aria-label="Delete">
+          <i class="fas fa-trash"></i>
+        </button>`;
+      list.appendChild(item);
+    });
+    list.querySelectorAll('.dbot-history-text').forEach(el=>{
+      el.addEventListener('click',()=>loadSession(el.dataset.id));
+      el.addEventListener('keydown',e=>{ if(e.key==='Enter') loadSession(el.dataset.id); });
+    });
+    list.querySelectorAll('.dbot-del-btn').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        deleteSession(btn.dataset.id, btn.closest('.dbot-history-item'));
+      });
+    });
+  } catch(e) {
+    list.innerHTML='<div class="dbot-empty">Could not load history.</div>';
+  }
+}
+
+async function loadSession(id) {
+  try {
+    const res  = await fetch(`/api/chat/load-chat/${id}/`);
+    const data = await res.json();
+    sessionId = data.session_id;
+    msgArea.innerHTML='';
+    data.messages.forEach(m => addMsg(m.role==='user'?'user':'bot', m.content));
+    switchTab('chat');
+    msgArea.scrollTop=msgArea.scrollHeight;
+  } catch(e) { addMsg('bot','Could not load that conversation.'); }
+}
+
+async function deleteSession(id, el) {
+  try {
+    await fetch(`/api/chat/delete-chat/${id}/`, {
+      method:'DELETE', headers:{'X-CSRFToken':csrf()}
+    });
+    el.remove();
+    if (String(sessionId)===String(id)) sessionId=null;
+  } catch(e) { /* silent */ }
+}
+
+/* ── Auto-detect geolocation on first open ──────────────────── */
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(4);
+    const lon = pos.coords.longitude.toFixed(4);
+    document.getElementById('dbot-wthr-lat').value = lat;
+    document.getElementById('dbot-wthr-lon').value = lon;
+    fetchWeather(lat, lon);
+  }, () => fetchWeather());   // fallback to Nairobi on denial
+} else {
+  fetchWeather();
+}
+
+})();
+</script>
+{% endif %}

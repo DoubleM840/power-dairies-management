@@ -177,6 +177,7 @@
         .stat-card .icon.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
         .stat-card .icon.orange { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
         .stat-card .icon.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .stat-card .icon.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
 
         .stat-card p {
             color: var(--text-muted);
@@ -309,6 +310,9 @@
     </style>
     
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/darkmode.css' %}">
+    <script>if(localStorage.getItem('pdDark')==='1'){document.documentElement.classList.add('dm-preload');}</script>
+    <style>html.dm-preload body{visibility:hidden;}</style>
 </head>
 <body>
     <!-- Mobile Overlay -->
@@ -368,9 +372,15 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if 'payments' in request.path %}active{% endif %}" 
+                <a class="nav-link {% if 'payments' in request.path and 'summary' not in request.path %}active{% endif %}" 
                    href="{% url 'admin_app:manage_payments' %}">
-                    <i class="fas fa-credit-card"></i> Payments
+                    <i class="fas fa-truck"></i> Order Tracking
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if 'summary' in request.path %}active{% endif %}" 
+                   href="{% url 'admin_app:payment_summary' %}">
+                    <i class="fas fa-history"></i> Payment Summary
                 </a>
             </li>
             <li class="nav-item">
@@ -408,12 +418,18 @@
 
     <!-- Main Content -->
     <div class="main-content">
-            <div class="page-header d-md-none">
-        <button class="mobile-toggle" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
-        <h1>Dashboard</h1>
-    </div>
+        <!-- Top bar: mobile menu toggle + dark mode toggle -->
+        <div class="d-flex align-items-center justify-content-between mb-3" id="admin-topbar">
+            <button class="mobile-toggle" onclick="toggleSidebar()" style="display:none;" id="mobile-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="ms-auto">
+                <button class="dm-toggle" id="dm-btn" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="dm-icon"></i>
+                    <span class="dm-label" id="dm-label">Dark Mode</span>
+                </button>
+            </div>
+        </div>
 
         {% if messages %}
             {% for message in messages %}
@@ -430,6 +446,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        /* ── Sidebar ─────────────────────────────────────────── */
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('show');
             document.getElementById('sidebarOverlay').classList.toggle('active');
@@ -452,16 +469,40 @@
             if (window.innerWidth > 768) {
                 closeSidebar();
             }
+            // show/hide mobile toggle button
+            var mobileBtn = document.getElementById('mobile-btn');
+            if (mobileBtn) mobileBtn.style.display = window.innerWidth <= 768 ? 'inline-block' : 'none';
         });
 
         window.addEventListener('load', function() {
             var sidebar = document.getElementById('sidebar');
             sidebar.style.overflowY = 'scroll';
             sidebar.style.height = '100vh';
-            console.log('Admin sidebar scroll enabled');
+            // show mobile toggle on small screens
+            var mobileBtn = document.getElementById('mobile-btn');
+            if (mobileBtn) mobileBtn.style.display = window.innerWidth <= 768 ? 'inline-block' : 'none';
         });
+
+        /* ── Dark Mode ──────────────────────────────────────── */
+        const DM_KEY = 'pdDark';
+        function applyDark(on) {
+            document.body.classList.toggle('dark-mode', on);
+            const icon  = document.getElementById('dm-icon');
+            const label = document.getElementById('dm-label');
+            if (icon)  icon.className    = on ? 'fas fa-sun'   : 'fas fa-moon';
+            if (label) label.textContent = on ? 'Light Mode'   : 'Dark Mode';
+            localStorage.setItem(DM_KEY, on ? '1' : '0');
+        }
+        function toggleDarkMode() { applyDark(!document.body.classList.contains('dark-mode')); }
+        (function () {
+            const on = localStorage.getItem(DM_KEY) === '1';
+            applyDark(on);
+            document.documentElement.classList.remove('dm-preload');
+            document.body.style.visibility = '';
+        })();
     </script>
     
     {% block extra_js %}{% endblock %}
+    {% include 'chat_widget.html' %}
 </body>
 </html>

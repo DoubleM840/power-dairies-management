@@ -26,9 +26,11 @@ urlpatterns = [
     path('milk/edit/<int:record_id>/', views.edit_milk_record, name='edit_milk_record'),
     path('milk/summary/', views.milk_summary, name='milk_summary'),
     
-    # Milk Approval (THIS WAS MISSING!)
-    path('milk-approval/', views.milk_approval, name='milk_approval'),
-    path('milk-approval/<int:record_id>/', views.approve_milk_record, name='approve_milk_record'),
+    # Milk Approval
+    path('milk-approval/',                                 views.milk_approval,        name='milk_approval'),
+    path('milk-approval/sync-all/',                        views.sync_all_collectors,  name='sync_all_collectors'),
+    path('milk-approval/sync/<int:record_id>/',            views.sync_collector,       name='sync_collector'),
+    path('milk-approval/<int:record_id>/',                 views.approve_milk_record,  name='approve_milk_record'),
     
     # Rates
     path('rates/', views.manage_rates, name='manage_rates'),
@@ -36,11 +38,12 @@ urlpatterns = [
     path('rates/edit/<int:rate_id>/', views.edit_rate, name='edit_rate'),
     path('update-fat-content/<int:record_id>/', views.update_fat_content, name='update_fat_content'),
     
-    # Payments
-    path('payments/', views.manage_payments, name='manage_payments'),
-    path('payments/approve/<int:payment_id>/', views.approve_payment, name='approve_payment'),
-    path('payments/reject/<int:payment_id>/', views.reject_payment, name='reject_payment'),
-    path('update-order-status/<int:order_id>/', views.update_order_status, name='update_order_status'),
+    # Payments / Order Tracking
+    path('payments/',                              views.manage_payments,  name='manage_payments'),
+    path('payments/summary/',                      views.payment_summary,  name='payment_summary'),
+    path('payments/approve/<int:payment_id>/',     views.approve_payment,  name='approve_payment'),
+    path('payments/reject/<int:payment_id>/',      views.reject_payment,   name='reject_payment'),
+    path('update-order-status/<int:order_id>/',    views.update_order_status, name='update_order_status'),
     
     # Feeds
     path('feeds/', views.manage_feeds, name='manage_feeds'),

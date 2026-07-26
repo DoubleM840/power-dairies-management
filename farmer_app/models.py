@@ -73,6 +73,8 @@ class MilkRecord(models.Model):
     )
     farmer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='milk_records')
     collector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='collected_records')
+    cow = models.ForeignKey('Cow', on_delete=models.SET_NULL, null=True, blank=True, related_name='milk_records',
+                            help_text="Optionally link to a specific cow for per-cow analytics")
     quantity = models.DecimalField(max_digits=10, decimal_places=2)  # in liters
     fat_content = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # percentage
     date_collected = models.DateField()
@@ -92,8 +94,33 @@ class Rate(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"Rate: {self.fat_rate}/L at {self.fat_content}% fat - Effective {self.effective_date}"
+        return f"Rate: KES {self.fat_rate}/L | Commission: {self.commission_rate} - Effective {self.effective_date}"
 
+class MilkRate(models.Model):
+    """Stores the current milk price and collector commission"""
+    milk_price_per_liter = models.DecimalField(
+        max_digits=10, decimal_places=2, 
+        default=80.00, 
+        help_text="Amount paid to farmer per liter (KES)"
+    )
+    collector_commission_per_liter = models.DecimalField(
+        max_digits=10, decimal_places=2, 
+        default=3.00, 
+        help_text="Commission paid to collector per liter (KES)"
+    )
+    effective_date = models.DateField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-effective_date']
+
+    def __str__(self):
+        return f"Farmer: KES {self.milk_price_per_liter}/L | Collector: KES {self.collector_commission_per_liter}/L"
+
+    @classmethod
+    def get_current_rate(cls):
+        """Helper method to easily get the active rate"""
+        return cls.objects.filter(is_active=True).first()
 
 # ==================== PAYMENT ====================
 class Payment(models.Model):
@@ -121,9 +148,6 @@ class Payment(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_approved = models.DateTimeField(blank=True, null=True)
     
-    def __str__(self):
-        return f"{self.user.username} - {self.amount} ({self.status})"
-
     def __str__(self):
         return f"{self.user.username} - {self.amount} ({self.status})"
 
@@ -177,6 +201,8 @@ class FeedOrder(models.Model):
     quantity = models.IntegerField()
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    payment_method = models.CharField(max_length=50, blank=True, null=True)
+    payment_source = models.CharField(max_length=50, blank=True, null=True)
     order_date = models.DateTimeField(auto_now_add=True)
     delivery_date = models.DateField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
@@ -270,3 +296,108 @@ class CollectorAllocation(models.Model):
 
     def __str__(self):
         return f"{self.collector.username} -> {self.farmer.username} ({self.area})"
+
+
+# ==================== BREEDING & CALVING ====================
+class BreedingRecord(models.Model):
+    INSEMINATION_TYPE_CHOICES = (
+        ('AI', 'Artificial Insemination'),
+        ('Natural', 'Natural Service'),
+    )
+    STATUS_CHOICES = (
+        ('Inseminated', 'Inseminated'),
+        ('Pregnant', 'Confirmed Pregnant'),
+        ('Calved', 'Calved'),
+        ('Failed', 'Failed / Repeat'),
+    )
+
+    cow = models.ForeignKey(Cow, on_delete=models.CASCADE, related_name='breeding_records')
+    farmer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='breeding_records')
+
+    last_heat_date = models.DateField(null=True, blank=True)
+    insemination_date = models.DateField()
+    insemination_type = models.CharField(max_length=20, choices=INSEMINATION_TYPE_CHOICES, default='AI')
+    bull_or_sire = models.CharField(max_length=100, blank=True, null=True,
+                                    help_text="Bull ID or AI sire name")
+
+    # Auto-calculated: insemination_date + 283 days
+    expected_calving_date = models.DateField(blank=True, null=True)
+
+    actual_calving_date = models.DateField(blank=True, null=True)
+    calf_gender = models.CharField(max_length=10, blank=True, null=True,
+                                   choices=[('Male', 'Male'), ('Female', 'Female')])
+    calf_tag = models.CharField(max_length=30, blank=True, null=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Inseminated')
+    notes = models.TextField(blank=True, null=True)
+
+    alert_sent = models.BooleanField(default=False,
+                                     help_text="True after 2-week calving alert has been sent")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-insemination_date']
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate expected calving date (gestation = 283 days)
+        from datetime import date, timedelta
+
+        if self.insemination_date:
+            if isinstance(self.insemination_date, str):
+                try:
+                    self.insemination_date = date.fromisoformat(self.insemination_date)
+                except ValueError:
+                    self.insemination_date = None
+
+        if self.insemination_date and not self.expected_calving_date:
+            self.expected_calving_date = self.insemination_date + timedelta(days=283)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (f"{self.cow.tag} — inseminated {self.insemination_date} "
+                f"(expected calving: {self.expected_calving_date})")
+
+    @property
+    def days_to_calving(self):
+        from django.utils import timezone
+        if self.expected_calving_date and self.status not in ('Calved', 'Failed'):
+            delta = self.expected_calving_date - timezone.now().date()
+            return delta.days
+        return None
+
+
+# ==================== COLLECTOR RATING ====================
+class CollectorRating(models.Model):
+    RATING_CHOICES = (
+        (1, '1 — Poor'),
+        (2, '2 — Fair'),
+        (3, '3 — Average'),
+        (4, '4 — Good'),
+        (5, '5 — Excellent'),
+    )
+    farmer = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='given_ratings'
+    )
+    collector = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='received_ratings'
+    )
+    milk_record = models.OneToOneField(
+        MilkRecord, on_delete=models.CASCADE, related_name='rating',
+        null=True, blank=True,
+        help_text="The collection visit this rating is for"
+    )
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    comment = models.TextField(blank=True, null=True, max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        # one rating per farmer-collector-record combination
+        unique_together = ('farmer', 'milk_record')
+
+    def __str__(self):
+        return (f"{self.farmer.username} rated {self.collector.username} "
+                f"{self.rating}/5 on {self.created_at.date()}")

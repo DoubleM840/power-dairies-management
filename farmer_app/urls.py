@@ -27,6 +27,13 @@ urlpatterns = [
     
     # Reports
     path('reports/', views.my_reports, name='my_reports'),
+    path('reports/milk-slip/<str:month>/', views.download_milk_slip, name='download_milk_slip'),
+    path('reports/milk-slip/', views.download_milk_slip, name='download_milk_slip'),
+    
+    # Breeding
+    path('breeding/', views.breeding_management, name='breeding_management'),
+    path('breeding/add/', views.add_breeding_record, name='add_breeding_record'),
+    path('breeding/alerts/', views.send_calving_alerts, name='send_calving_alerts'),
     
     # Livestock
     path('livestock/', views.livestock_management, name='livestock_management'),

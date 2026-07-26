@@ -1,0 +1,54 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Breeding & Calving{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Breeding & Calving</h3>
+    <a href="{% url 'farmer_app:add_breeding_record' %}" class="btn btn-primary-custom text-white">
+        <i class="fas fa-plus me-2"></i>Add Breeding Record
+    </a>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-bell me-2"></i>Use the reminder action to check for cows due in the next 2 weeks.
+</div>
+
+<div class="card-custom mb-4">
+    <div class="card-header"><i class="fas fa-calendar-alt me-2"></i>Breeding Records</div>
+    <div class="card-body p-0">
+        <table class="table table-custom table-hover">
+            <thead>
+                <tr>
+                    <th>Cow</th>
+                    <th>Last Heat</th>
+                    <th>Insemination Date</th>
+                    <th>Expected Calving</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.cow.name|default:record.cow.tag }}</td>
+                    <td>{{ record.last_heat_date|default:"-" }}</td>
+                    <td>{{ record.insemination_date }}</td>
+                    <td>{{ record.expected_calving_date|default:"-" }}</td>
+                    <td>{{ record.status }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No breeding records yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card-custom">
+    <div class="card-header"><i class="fas fa-bullseye me-2"></i>Calving Reminders</div>
+    <div class="card-body">
+        <a href="{% url 'farmer_app:send_calving_alerts' %}" class="btn btn-outline-success">
+            <i class="fas fa-sms me-2"></i>Check Upcoming Calving Alerts
+        </a>
+    </div>
+</div>
+{% endblock %}

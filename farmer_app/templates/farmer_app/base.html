@@ -201,6 +201,9 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/darkmode.css' %}">
+    <script>if(localStorage.getItem('pdDark')==='1'){document.documentElement.classList.add('dm-preload');}</script>
+    <style>html.dm-preload body{visibility:hidden;}</style>
 </head>
 <body>
     <!-- Mobile Overlay -->
@@ -250,6 +253,9 @@
             <a href="{% url 'farmer_app:livestock_management' %}" class="nav-link">
                 <i class="fas fa-horse"></i> Livestock
             </a>
+            <a href="{% url 'farmer_app:breeding_management' %}" class="nav-link">
+                <i class="fas fa-baby-carriage"></i> Breeding & Calving
+            </a>
             
             <div class="nav-section">Support</div>
             <a href="{% url 'farmer_app:my_claims' %}" class="nav-link">
@@ -290,6 +296,10 @@
                     <span class="notification-badge">{{ unread_notifications }}</span>
                     {% endif %}
                 </a>
+                <button class="dm-toggle me-3" id="dm-btn" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="dm-icon"></i>
+                    <span class="dm-label" id="dm-label">Dark Mode</span>
+                </button>
                 <div class="d-flex align-items-center">
                     <div class="rounded-circle text-white d-flex align-items-center justify-content-center"
                          style="width: 36px; height: 36px; font-weight: bold; background: var(--primary);">
@@ -347,7 +357,28 @@
             console.log('Farmer sidebar scroll enabled');
         });
     </script>
-    
+
+    <script>
+        /* ── Dark Mode ──────────────────────────────────────── */
+        const DM_KEY = 'pdDark';
+        function applyDark(on) {
+            document.body.classList.toggle('dark-mode', on);
+            const icon  = document.getElementById('dm-icon');
+            const label = document.getElementById('dm-label');
+            if (icon)  icon.className   = on ? 'fas fa-sun'  : 'fas fa-moon';
+            if (label) label.textContent = on ? 'Light Mode' : 'Dark Mode';
+            localStorage.setItem(DM_KEY, on ? '1' : '0');
+        }
+        function toggleDarkMode() { applyDark(!document.body.classList.contains('dark-mode')); }
+        (function () {
+            const on = localStorage.getItem(DM_KEY) === '1';
+            applyDark(on);
+            document.documentElement.classList.remove('dm-preload');
+            document.body.style.visibility = '';
+        })();
+    </script>
+
     {% block extra_js %}{% endblock %}
+    {% include 'chat_widget.html' %}
 </body>
 </html>

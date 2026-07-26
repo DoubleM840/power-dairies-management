@@ -70,7 +70,10 @@ coverage.xml
 # Ngrok
 ngrok.exe
 ngrok.yml
+ngrok.log
 
 # Temporary files
 *.tmp
 *.bak
+
+.env

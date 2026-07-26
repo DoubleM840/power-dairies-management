@@ -177,27 +177,28 @@
     </div>
     <div class="card-body p-0">
         <div class="list-group list-group-flush">
-            {% for notification in notifications|slice:":5" %}
+        {% for notification in notifications|slice:":5" %}
             <div class="list-group-item list-group-item-action p-3 border-bottom {% if forloop.first %}bg-light{% endif %}">
                 <div class="d-flex align-items-start">
                     <div class="notification-icon me-3 mt-1">
-                        {% if notification.type == 'claim' %}
+                        {% if 'claim' in notification.title|lower %}
                             <i class="fas fa-clipboard-list text-danger"></i>
-                        {% elif notification.type == 'farmer' %}
-                            <i class="fas fa-user-plus text-success"></i>
-                        {% elif notification.type == 'stock' %}
+                        {% elif 'stock' in notification.title|lower %}
                             <i class="fas fa-box-open text-warning"></i>
+                        {% elif 'farmer' in notification.title|lower or 'approved' in notification.title|lower %}
+                            <i class="fas fa-user-check text-success"></i>
                         {% else %}
                             <i class="fas fa-info-circle text-info"></i>
                         {% endif %}
                     </div>
                     <div class="flex-grow-1">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0 fw-semibold">{{ notification.message }}</h6>
-                            <small class="text-muted">
-                                <i class="far fa-clock me-1"></i>{{ notification.time|timesince }} ago
+                            <h6 class="mb-0 fw-semibold">{{ notification.title }}</h6>
+                            <small class="text-muted ms-3 flex-shrink-0">
+                                <i class="far fa-clock me-1"></i>{{ notification.created_at|timesince }} ago
                             </small>
                         </div>
+                        <p class="mb-0 small text-muted">{{ notification.message|truncatechars:80 }}</p>
                     </div>
                 </div>
             </div>

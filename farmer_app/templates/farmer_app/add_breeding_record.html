@@ -1,0 +1,47 @@
+{% extends 'farmer_app/base.html' %}
+{% block page_title %}Add Breeding Record{% endblock %}
+
+{% block content %}
+<div class="card-custom">
+    <div class="card-header"><i class="fas fa-plus me-2"></i>Add Breeding Record</div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Cow</label>
+                    <select name="cow" class="form-select" required>
+                        {% for cow in cows %}
+                        <option value="{{ cow.id }}">{{ cow.name|default:cow.tag }}</option>
+                        {% empty %}
+                        <option value="" disabled>No cows available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Last Heat Date</label>
+                    <input type="date" name="last_heat_date" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Insemination Date</label>
+                    <input type="date" name="insemination_date" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Insemination Type</label>
+                    <select name="insemination_type" class="form-select">
+                        <option value="AI">Artificial Insemination</option>
+                        <option value="Natural">Natural Service</option>
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Bull / Sire</label>
+                    <input type="text" name="bull_or_sire" class="form-control">
+                </div>
+            </div>
+            <button class="btn btn-primary-custom text-white mt-4" type="submit">
+                <i class="fas fa-save me-2"></i>Save Record
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,313 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Status — Power Dairies</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/darkmode.css' %}">
+    <script>if(localStorage.getItem('pdDark')==='1'){document.documentElement.classList.add('dm-preload');}</script>
+    <style>
+        html.dm-preload body { visibility: hidden; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+            max-width: 480px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* ── Coloured top bar — changes with status ── */
+        .status-bar {
+            height: 6px;
+            background: #f59e0b;         /* default: pending/amber */
+            transition: background 0.4s;
+        }
+        .status-bar.completed  { background: #10b981; }
+        .status-bar.failed,
+        .status-bar.cancelled  { background: #ef4444; }
+
+        .status-body { padding: 36px 32px 28px; }
+
+        /* ── Central icon ── */
+        .status-icon {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 20px;
+            transition: background 0.4s, color 0.4s;
+            background: rgba(245,158,11,0.12);
+            color: #f59e0b;
+        }
+        .status-icon.completed { background: rgba(16,185,129,0.12); color: #10b981; }
+        .status-icon.failed,
+        .status-icon.cancelled { background: rgba(239,68,68,0.12);  color: #ef4444; }
+
+        /* ── Animated spinner overlay (visible while pending) ── */
+        .spin-ring {
+            position: absolute;
+            width: 88px; height: 88px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: #f59e0b;
+            animation: spin 1s linear infinite;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s;
+        }
+        .icon-wrap {
+            position: relative;
+            width: 80px; height: 80px;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        /* ── Pulse dots ── */
+        .pulse-dots { display: flex; justify-content: center; gap: 6px; margin: 12px 0; }
+        .pulse-dots span {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #f59e0b;
+            animation: pulse-dot 1.4s ease-in-out infinite;
+        }
+        .pulse-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .pulse-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse-dot {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+            40%            { transform: scale(1);   opacity: 1;   }
+        }
+
+        /* ── Transaction detail rows ── */
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: #6b7280; }
+        .detail-value { font-weight: 600; color: #1f2937; }
+
+        /* ── Dark mode overrides ── */
+        body.dark-mode { background: #0f1117; }
+        body.dark-mode .status-card { background: #1a1f2e; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+        body.dark-mode .detail-row  { border-bottom-color: #2d3748; }
+        body.dark-mode .detail-label { color: #94a3b8; }
+        body.dark-mode .detail-value { color: #e2e8f0; }
+        body.dark-mode .text-muted   { color: #94a3b8 !important; }
+    </style>
+</head>
+<body>
+
+<div class="status-card">
+
+    <!-- Colour bar — updated by JS -->
+    <div class="status-bar" id="status-bar"></div>
+
+    <div class="status-body">
+
+        <!-- Icon + spinner -->
+        <div class="icon-wrap">
+            <div class="status-icon" id="status-icon">
+                <i class="fas fa-mobile-alt" id="status-icon-i"></i>
+            </div>
+            <div class="spin-ring" id="spin-ring"></div>
+        </div>
+
+        <!-- Heading -->
+        <h4 class="text-center fw-bold mb-1" id="status-heading">Checking Payment…</h4>
+        <p class="text-center text-muted mb-3" id="status-subtext">
+            Please wait while we verify your M-Pesa payment.
+        </p>
+
+        <!-- Pulse dots — hidden once resolved -->
+        <div class="pulse-dots" id="pulse-dots">
+            <span></span><span></span><span></span>
+        </div>
+
+        <!-- Transaction details -->
+        <div class="mt-3 mb-4">
+            <div class="detail-row">
+                <span class="detail-label">Amount</span>
+                <span class="detail-value">KES {{ transaction.amount }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ transaction.phone_number }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Requested</span>
+                <span class="detail-value">{{ transaction.date_requested|date:"d M Y, H:i" }}</span>
+            </div>
+            <div class="detail-row" id="receipt-row" style="display:none">
+                <span class="detail-label">Receipt</span>
+                <span class="detail-value" id="receipt-value">—</span>
+            </div>
+        </div>
+
+        <!-- Action buttons — shown when resolved -->
+        <div id="action-btns" class="d-none d-flex flex-column gap-2">
+            <a href="{% url 'farmer_app:my_orders' %}" class="btn btn-success w-100" id="orders-btn" style="display:none">
+                <i class="fas fa-check-circle me-2"></i>View My Orders
+            </a>
+            <a href="{% url 'farmer_app:view_cart' %}" class="btn btn-warning w-100" id="retry-btn" style="display:none">
+                <i class="fas fa-redo me-2"></i>Return to Cart &amp; Retry
+            </a>
+        </div>
+
+        <!-- Dark-mode toggle -->
+        <div class="text-center mt-4">
+            <button class="dm-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode" style="
+                background:none; border:1px solid rgba(128,128,128,0.3); border-radius:20px;
+                padding:5px 14px; cursor:pointer; font-size:13px; color:inherit;">
+                <i class="fas fa-moon" id="dm-icon"></i>
+                <span id="dm-label" style="font-size:12px; margin-left:4px;">Dark Mode</span>
+            </button>
+        </div>
+
+    </div><!-- /status-body -->
+</div><!-- /status-card -->
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── Config injected from Django ──────────────────────────────── */
+    var CHECKOUT_ID  = '{{ checkout_request_id }}';
+    var INITIAL_STATUS = '{{ transaction.status }}';
+    var STATUS_URL_T = '{% url "mpesa:check_status" "PLACEHOLDER" %}'.replace('PLACEHOLDER', '{id}');
+    var ORDERS_URL   = '{% url "farmer_app:my_orders" %}';
+
+    /* ── DOM refs ─────────────────────────────────────────────────── */
+    var bar       = document.getElementById('status-bar');
+    var icon      = document.getElementById('status-icon');
+    var iconI     = document.getElementById('status-icon-i');
+    var spinRing  = document.getElementById('spin-ring');
+    var heading   = document.getElementById('status-heading');
+    var subtext   = document.getElementById('status-subtext');
+    var pulseDots = document.getElementById('pulse-dots');
+    var actionBtns = document.getElementById('action-btns');
+    var ordersBtn  = document.getElementById('orders-btn');
+    var retryBtn   = document.getElementById('retry-btn');
+    var receiptRow = document.getElementById('receipt-row');
+    var receiptVal = document.getElementById('receipt-value');
+
+    /* ── Apply a resolved status to the UI ───────────────────────── */
+    function applyStatus(status, receipt, resultDesc) {
+        pulseDots.style.display = 'none';
+        spinRing.style.opacity  = '0';
+        actionBtns.classList.remove('d-none');
+
+        if (status === 'COMPLETED') {
+            bar.className   = 'status-bar completed';
+            icon.className  = 'status-icon completed';
+            iconI.className = 'fas fa-check-circle';
+            heading.textContent  = 'Payment Confirmed!';
+            subtext.textContent  = 'Your order has been placed. You will receive a confirmation SMS shortly.';
+            if (receipt) {
+                receiptRow.style.display = 'flex';
+                receiptVal.textContent   = receipt;
+            }
+            ordersBtn.style.display = 'block';
+            /* Auto-redirect after 4 s */
+            setTimeout(function () { window.location.href = ORDERS_URL; }, 4000);
+
+        } else if (status === 'FAILED') {
+            bar.className   = 'status-bar failed';
+            icon.className  = 'status-icon failed';
+            iconI.className = 'fas fa-times-circle';
+            heading.textContent = 'Payment Failed';
+            subtext.textContent = resultDesc || 'The payment could not be completed. Please try again.';
+            retryBtn.style.display = 'block';
+
+        } else if (status === 'CANCELLED') {
+            bar.className   = 'status-bar cancelled';
+            icon.className  = 'status-icon cancelled';
+            iconI.className = 'fas fa-ban';
+            heading.textContent = 'Payment Cancelled';
+            subtext.textContent = 'You cancelled the M-Pesa prompt. Return to cart to try again.';
+            retryBtn.style.display = 'block';
+        }
+    }
+
+    /* ── Poll Safaricom status every 4 s (up to 20 attempts = 80 s) ─ */
+    function poll(attempts) {
+        if (attempts <= 0) {
+            /* Give up — let the user check manually */
+            pulseDots.style.display = 'none';
+            spinRing.style.opacity  = '0';
+            heading.textContent     = 'Taking Longer Than Expected';
+            subtext.textContent     = 'We could not confirm your payment automatically. Check "My Orders" in a few minutes — your order may still go through.';
+            actionBtns.classList.remove('d-none');
+            ordersBtn.style.display = 'block';
+            return;
+        }
+
+        var url = STATUS_URL_T.replace('{id}', CHECKOUT_ID);
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.status === 'COMPLETED' || data.status === 'FAILED' || data.status === 'CANCELLED') {
+                    applyStatus(data.status, data.receipt, data.result_desc);
+                } else {
+                    /* Still PENDING — retry */
+                    setTimeout(function () { poll(attempts - 1); }, 4000);
+                }
+            })
+            .catch(function () {
+                setTimeout(function () { poll(attempts - 1); }, 4000);
+            });
+    }
+
+    /* ── Entry point ─────────────────────────────────────────────── */
+    if (INITIAL_STATUS === 'COMPLETED' || INITIAL_STATUS === 'FAILED' || INITIAL_STATUS === 'CANCELLED') {
+        /* Transaction already resolved — render immediately */
+        applyStatus(
+            INITIAL_STATUS,
+            '{{ transaction.mpesa_receipt_number|default:"" }}',
+            '{{ transaction.result_desc|default:""|escapejs }}'
+        );
+    } else {
+        /* Start polling */
+        setTimeout(function () { poll(20); }, 2000);
+    }
+
+    /* ── Dark mode ───────────────────────────────────────────────── */
+    var DM_KEY = 'pdDark';
+    function applyDark(on) {
+        document.body.classList.toggle('dark-mode', on);
+        var dmIcon  = document.getElementById('dm-icon');
+        var dmLabel = document.getElementById('dm-label');
+        if (dmIcon)  dmIcon.className    = on ? 'fas fa-sun'  : 'fas fa-moon';
+        if (dmLabel) dmLabel.textContent = on ? 'Light Mode'  : 'Dark Mode';
+        localStorage.setItem(DM_KEY, on ? '1' : '0');
+    }
+    window.toggleDarkMode = function () { applyDark(!document.body.classList.contains('dark-mode')); };
+    (function () {
+        var on = localStorage.getItem(DM_KEY) === '1';
+        applyDark(on);
+        document.documentElement.classList.remove('dm-preload');
+        document.body.style.visibility = '';
+    })();
+
+})();
+</script>
+</body>
+</html>

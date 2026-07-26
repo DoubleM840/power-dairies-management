@@ -16,6 +16,7 @@ from farmer_app.models import (
     MilkRecord, Rate, Payment, Feed, FeedOrder,
     Claim, Notification, CollectorAllocation, Cow, Cart, CartItem
 )
+from farmer_app.services import send_sms
 
 # ==================== HELPER FUNCTIONS ====================
 def get_pending_milk_count():
@@ -51,20 +52,16 @@ def admin_dashboard(request):
     pending_collectors = User.objects.filter(profile__role='collector', profile__is_approved=False).count()
     
     # Milk Statistics
-    today_milk = MilkRecord.objects.filter(date_collected=today).aggregate(
-        total=Sum('quantity'))['total'] or 0
+    today_milk = MilkRecord.objects.filter(date_collected=today).aggregate(total=Sum('quantity'))['total'] or 0
     today_milk_records = MilkRecord.objects.filter(date_collected=today).count()
     
     month_ago = today - timedelta(days=30)
-    monthly_milk = MilkRecord.objects.filter(date_collected__gte=month_ago).aggregate(
-        total=Sum('quantity'))['total'] or 0
+    monthly_milk = MilkRecord.objects.filter(date_collected__gte=month_ago).aggregate(total=Sum('quantity'))['total'] or 0
     
     # Financial Overview
-    total_revenue = Payment.objects.filter(status='Completed').aggregate(
-        total=Sum('amount'))['total'] or 0
+    total_revenue = Payment.objects.filter(status='Completed').aggregate(total=Sum('amount'))['total'] or 0
     pending_payments = Payment.objects.filter(status='Pending').count()
-    pending_amount = Payment.objects.filter(status='Pending').aggregate(
-        total=Sum('amount'))['total'] or 0
+    pending_amount = Payment.objects.filter(status='Pending').aggregate(total=Sum('amount'))['total'] or 0
     
     # Orders & Inventory
     pending_orders = FeedOrder.objects.filter(status='Pending').count()
@@ -77,6 +74,10 @@ def admin_dashboard(request):
     # Recent Activity
     recent_milk_records = MilkRecord.objects.select_related('farmer', 'collector').order_by('-date_collected')[:5]
     recent_orders = FeedOrder.objects.select_related('farmer', 'feed').order_by('-order_date')[:5]
+    recent_farmers = User.objects.filter(profile__role='farmer').order_by('-date_joined')[:10]
+    
+    # ✅ ADD THIS: Notifications for the header and dashboard
+    notifications = Notification.objects.filter(user=request.user, is_read=False).order_by('-created_at')[:10]
     
     # Chart data - last 7 days milk collection
     last_7_days = []
@@ -84,10 +85,8 @@ def admin_dashboard(request):
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
         last_7_days.append(day.strftime('%Y-%m-%d'))
-        qty = MilkRecord.objects.filter(date_collected=day).aggregate(
-            total=Sum('quantity'))['total'] or 0
+        qty = MilkRecord.objects.filter(date_collected=day).aggregate(total=Sum('quantity'))['total'] or 0
         quantities.append(float(qty))
-    recent_farmers = User.objects.filter(profile__role='farmer').order_by('-date_joined')[:10]
 
     context = {
         'total_farmers': total_farmers,
@@ -106,9 +105,10 @@ def admin_dashboard(request):
         'pending_claims': pending_claims,
         'recent_milk_records': recent_milk_records,
         'recent_orders': recent_orders,
+        'recent_farmers': recent_farmers,
         'labels': json.dumps(last_7_days),
         'quantities': json.dumps(quantities),
-        'recent_farmers': recent_farmers,
+        'notifications': notifications, # ✅ Added to context
     }
     return render(request, 'admin_app/dashboard.html', context)
 
@@ -134,7 +134,7 @@ def approve_collector(request, user_id):
         profile.is_active_account = True
         profile.save()
         Notification.objects.create(user=profile.user, title='Account Approved', message='Your collector account has been approved!')
-        messages.success(request, f'✓ Collector "{profile.user.username}" has been APPROVED successfully.')
+        messages.success(request, f'Collector "{profile.user.username}" has been APPROVED successfully.')
     return redirect('admin_app:approve_collectors')
 
 @login_required
@@ -145,7 +145,7 @@ def reject_collector(request, user_id):
         profile.is_approved = False
         profile.is_active_account = False
         profile.save()
-        messages.warning(request, f'✗ Collector "{profile.user.username}" has been REJECTED.')
+        messages.warning(request, f'Collector "{profile.user.username}" has been REJECTED.')
     return redirect('admin_app:approve_collectors')
 
 # ==================== USER MANAGEMENT ====================
@@ -255,7 +255,12 @@ def milk_overview(request):
         last_7_days.append(date.strftime('%Y-%m-%d'))
         qty = MilkRecord.objects.filter(date_collected=date).aggregate(total=Sum('quantity'))['total'] or 0
         quantities.append(float(qty))
-    return render(request, 'admin_app/milk_overview.html', {'records': records, 'labels': last_7_days, 'quantities': quantities, 'pending_collectors_count': get_pending_collectors_count()})
+    return render(request, 'admin_app/milk_overview.html', {
+        'records': records,
+        'labels': json.dumps(last_7_days),
+        'quantities': json.dumps(quantities),
+        'pending_collectors_count': get_pending_collectors_count(),
+    })
 
 @login_required
 @admin_required
@@ -285,9 +290,126 @@ def milk_summary(request):
 @admin_required
 def milk_approval(request):
     status_filter = request.GET.get('status', 'Pending')
-    records = MilkRecord.objects.select_related('farmer', 'collector').all().order_by('-date_collected', '-created_at')
-    if status_filter: records = records.filter(status=status_filter)
-    return render(request, 'admin_app/milk_approval.html', {'records': records, 'status_filter': status_filter, 'pending_collectors_count': get_pending_collectors_count()})
+    records = MilkRecord.objects.select_related(
+        'farmer', 'collector',
+        'farmer__profile', 'collector__profile'
+    ).all().order_by('-date_collected', '-created_at')
+    if status_filter:
+        records = records.filter(status=status_filter)
+
+    # Build a farmer_id → active CollectorAllocation map so the
+    # template can show who *should* be collecting for each farmer
+    # and flag records where the collector field is missing or wrong.
+    allocations = CollectorAllocation.objects.filter(
+        is_active=True
+    ).select_related('collector', 'collector__profile')
+
+    allocation_map = {}   # farmer_id → CollectorAllocation
+    for alloc in allocations:
+        # If a farmer has multiple active allocations keep the most
+        # recently assigned one (they're ordered by date_assigned asc
+        # by default so last write wins here)
+        allocation_map[alloc.farmer_id] = alloc
+
+    return render(request, 'admin_app/milk_approval.html', {
+        'records': records,
+        'status_filter': status_filter,
+        'allocation_map': allocation_map,
+        'pending_collectors_count': get_pending_collectors_count(),
+    })
+
+
+@login_required
+@admin_required
+def sync_collector(request, record_id):
+    """
+    Copy the active CollectorAllocation for the record's farmer onto
+    the MilkRecord.collector field.  Called from the milk approval page.
+    """
+    if request.method != 'POST':
+        return redirect('admin_app:milk_approval')
+
+    record = get_object_or_404(MilkRecord, id=record_id)
+    allocation = CollectorAllocation.objects.filter(
+        farmer=record.farmer, is_active=True
+    ).select_related('collector').first()
+
+    if allocation:
+        old_collector = record.collector
+        record.collector = allocation.collector
+        record.save(update_fields=['collector'])
+
+        if old_collector != allocation.collector:
+            Notification.objects.create(
+                user=allocation.collector,
+                title='Milk Record Assigned',
+                message=(
+                    f'A milk record for farmer {record.farmer.username} '
+                    f'({record.quantity}L on {record.date_collected}) '
+                    f'has been assigned to you.'
+                ),
+            )
+        messages.success(
+            request,
+            f'Collector synced: {allocation.collector.username} '
+            f'assigned to {record.farmer.username}\'s record.'
+        )
+    else:
+        messages.warning(
+            request,
+            f'No active allocation found for farmer {record.farmer.username}. '
+            f'Please set one up in Collector Allocation first.'
+        )
+
+    return redirect('admin_app:milk_approval')
+
+@login_required
+@admin_required
+def sync_all_collectors(request):
+    """
+    Bulk sync: for every MilkRecord that has no collector set,
+    look up the active CollectorAllocation for the farmer and
+    assign that collector to the record.
+    """
+    if request.method != 'POST':
+        return redirect('admin_app:milk_approval')
+
+    # Fetch all active allocations as farmer_id -> collector
+    allocations = {
+        alloc.farmer_id: alloc.collector
+        for alloc in CollectorAllocation.objects.filter(
+            is_active=True
+        ).select_related('collector')
+    }
+
+    unassigned = MilkRecord.objects.filter(collector__isnull=True)
+    synced = 0
+    skipped = 0
+
+    for record in unassigned:
+        collector = allocations.get(record.farmer_id)
+        if collector:
+            record.collector = collector
+            record.save(update_fields=['collector'])
+            synced += 1
+        else:
+            skipped += 1
+
+    if synced:
+        messages.success(
+            request,
+            f'{synced} record(s) updated with their allocated collector.'
+            + (f' {skipped} record(s) skipped (no allocation found).' if skipped else '')
+        )
+    else:
+        messages.info(
+            request,
+            'No records needed syncing.'
+            + (f' {skipped} record(s) have no active allocation set.' if skipped else '')
+        )
+
+    return redirect('admin_app:milk_approval')
+
 
 @login_required
 @admin_required
@@ -298,13 +420,15 @@ def approve_milk_record(request, record_id):
         if action == 'approve':
             record.status = 'Approved'
             Notification.objects.create(user=record.farmer, title='Milk Record Approved', message=f'Your milk record of {record.quantity}L from {record.date_collected} has been approved.')
+            phone = record.farmer.profile.phone if hasattr(record.farmer, 'profile') and record.farmer.profile.phone else ''
+            if phone:
+                send_sms(phone, f'Power Dairies: {record.quantity}L milk approved today. Est. Pay: KES {float(record.quantity) * 50:.2f}.')
             messages.success(request, f'Milk record of {record.quantity}L approved successfully.')
         elif action == 'reject':
             record.status = 'Rejected'
             Notification.objects.create(user=record.farmer, title='Milk Record Rejected', message=f'Your milk record of {record.quantity}L from {record.date_collected} has been rejected.')
             messages.warning(request, f'Milk record of {record.quantity}L rejected.')
         record.save()
-        return redirect('admin_app:milk_approval')
     return redirect('admin_app:milk_approval')
 
 @login_required
@@ -351,17 +475,66 @@ def edit_rate(request, rate_id):
         return redirect('admin_app:manage_rates')
     return render(request, 'admin_app/edit_rate.html', {'rate': rate})
 
-# ==================== PAYMENTS ====================
+# ==================== ORDER TRACKING (was manage_payments) ====================
 @login_required
 @admin_required
 def manage_payments(request):
-    status_filter = request.GET.get('status', '')
-    milk_payments = Payment.objects.select_related('user').all().order_by('-date_created')
+    """Order Tracking — shows all feed orders with live status updates."""
+    status_filter  = request.GET.get('status', '').strip()
+    payment_filter = request.GET.get('payment', '').strip()
+
     feed_orders = FeedOrder.objects.select_related('farmer', 'feed').all().order_by('-order_date')
     if status_filter:
-        milk_payments = milk_payments.filter(status__iexact=status_filter)
         feed_orders = feed_orders.filter(status__iexact=status_filter)
-    return render(request, 'admin_app/manage_payments.html', {'milk_payments': milk_payments, 'feed_orders': feed_orders, 'status_filter': status_filter, 'title': 'Manage Payments', 'pending_collectors_count': get_pending_collectors_count()})
+    if payment_filter:
+        feed_orders = feed_orders.filter(payment_method__icontains=payment_filter)
+
+    status_choices = ['Pending', 'Confirmed', 'Processing', 'Delivered', 'Cancelled']
+
+    context = {
+        'feed_orders':          feed_orders,
+        'status_filter':        status_filter,
+        'payment_filter':       payment_filter,
+        'status_choices':       status_choices,
+        'pending_orders_count': FeedOrder.objects.filter(status='Pending').count(),
+        'processing_count':     FeedOrder.objects.filter(status='Processing').count(),
+        'delivered_count':      FeedOrder.objects.filter(status='Delivered').count(),
+        'cancelled_count':      FeedOrder.objects.filter(status='Cancelled').count(),
+        'pending_collectors_count': get_pending_collectors_count(),
+    }
+    return render(request, 'admin_app/manage_payments.html', context)
+
+
+@login_required
+@admin_required
+def payment_summary(request):
+    """Payment Summary — full history of every payment record."""
+    status_filter = request.GET.get('status', '').strip()
+    method_filter = request.GET.get('method', '').strip()
+
+    payments = Payment.objects.select_related('user').all().order_by('-date_created')
+    if status_filter:
+        payments = payments.filter(status__iexact=status_filter)
+    if method_filter:
+        payments = payments.filter(method__icontains=method_filter)
+
+    from django.db.models import Sum as _Sum
+    total_completed = payments.filter(status='Completed').aggregate(t=_Sum('amount'))['t'] or 0
+    total_pending   = payments.filter(status='Pending').aggregate(t=_Sum('amount'))['t'] or 0
+    mpesa_count     = Payment.objects.filter(method__icontains='M-Pesa').count()
+    deduction_count = Payment.objects.filter(method__icontains='Milk Deduction').count()
+
+    context = {
+        'payments':         payments,
+        'status_filter':    status_filter,
+        'method_filter':    method_filter,
+        'total_completed':  total_completed,
+        'total_pending':    total_pending,
+        'mpesa_count':      mpesa_count,
+        'deduction_count':  deduction_count,
+        'pending_collectors_count': get_pending_collectors_count(),
+    }
+    return render(request, 'admin_app/payment_summary.html', context)
 
 @login_required
 @admin_required

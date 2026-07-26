@@ -1,4 +1,5 @@
 {% extends 'admin_app/base.html' %}
+{% load admin_extras %}
 {% block page_title %}Milk Approval{% endblock %}
 
 {% block content %}
@@ -38,7 +39,17 @@
 <div class="card-custom">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="fas fa-list me-2"></i>Milk Records</span>
-        <span class="badge bg-primary">{{ records.count }} records</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary">{{ records.count }} records</span>
+            <form method="post" action="{% url 'admin_app:sync_all_collectors' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-warning text-dark"
+                        onclick="return confirm('Sync allocated collectors onto ALL records that have no collector set?')"
+                        title="Assign allocated collectors to all unassigned milk records">
+                    <i class="fas fa-sync-alt me-1"></i>Sync All
+                </button>
+            </form>
+        </div>
     </div>
     <div class="card-body p-0">
         {% if records %}
@@ -62,13 +73,84 @@
                         <td class="ps-4"><strong>{{ record.date_collected|date:"M d, Y" }}</strong></td>
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                     style="width:30px;height:30px;font-size:12px;font-weight:700;">
                                     {{ record.farmer.username|first|upper }}
                                 </div>
-                                {{ record.farmer.username }}
+                                <div>
+                                    <div class="fw-semibold">{{ record.farmer.get_full_name|default:record.farmer.username }}</div>
+                                    <small class="text-muted">{{ record.farmer.profile.farmer_number|default:"@"|add:record.farmer.username }}</small>
+                                </div>
                             </div>
                         </td>
-                        <td>{{ record.collector.username|default:"-" }}</td>
+                        <td>
+                            {% if record.collector %}
+                                {# Collector is set on the record — show them #}
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                         style="width:30px;height:30px;font-size:12px;font-weight:700;">
+                                        {{ record.collector.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">{{ record.collector.get_full_name|default:record.collector.username }}</div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-phone fa-xs me-1"></i>{{ record.collector.profile.phone|default:"No phone" }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {# Mismatch: allocation says a different collector #}
+                                {% with alloc=allocation_map|get_item:record.farmer_id %}
+                                {% if alloc and alloc.collector_id != record.collector_id %}
+                                <div class="mt-1">
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Mismatch — allocated: {{ alloc.collector.username }}
+                                    </span>
+                                    <form method="post" action="{% url 'admin_app:sync_collector' record.id %}" class="d-inline ms-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-warning py-0 px-2"
+                                                style="font-size:11px;"
+                                                onclick="return confirm('Switch to allocated collector {{ alloc.collector.username }}?')">
+                                            <i class="fas fa-sync-alt me-1"></i>Use allocated
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                {# No collector on the record — look up allocation #}
+                                {% with alloc=allocation_map|get_item:record.farmer_id %}
+                                {% if alloc %}
+                                    <div class="mb-1 d-flex align-items-center">
+                                        <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                             style="width:30px;height:30px;font-size:12px;font-weight:700;">
+                                            {{ alloc.collector.username|first|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold text-warning">{{ alloc.collector.get_full_name|default:alloc.collector.username }}</div>
+                                            <small class="text-muted"><i class="fas fa-map-marker-alt fa-xs me-1"></i>{{ alloc.area }}</small>
+                                        </div>
+                                    </div>
+                                    <form method="post" action="{% url 'admin_app:sync_collector' record.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-warning text-dark"
+                                                style="font-size:12px;"
+                                                onclick="return confirm('Assign {{ alloc.collector.username }} to this record?')">
+                                            <i class="fas fa-sync-alt me-1"></i>Sync Collector
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary mb-1">
+                                        <i class="fas fa-user-slash me-1"></i>Not assigned
+                                    </span>
+                                    <div>
+                                        <a href="{% url 'admin_app:allocate_collectors' %}" class="text-primary" style="font-size:11px;">
+                                            <i class="fas fa-plus-circle me-1"></i>Set allocation
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </td>
                         <td><strong>{{ record.quantity }}</strong></td>
                         <td>
                             <strong>{{ record.fat_content }}%</strong>
@@ -187,9 +269,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var recordId = this.getAttribute('data-record-id');
             var fatContent = this.getAttribute('data-fat-content');
             
-            // Update form action
+            // Update form action using Django's url tag
             var form = document.getElementById('editFatForm');
-            form.action = '/admin-app/update-fat-content/' + recordId + '/';
+            // Build URL from the known pattern rendered server-side
+            form.action = '{% url "admin_app:update_fat_content" 0 %}'.replace('/0/', '/' + recordId + '/');
             
             // Set current value
             var input = document.getElementById('fatContentInput');

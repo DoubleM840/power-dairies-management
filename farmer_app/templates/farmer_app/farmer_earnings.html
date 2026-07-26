@@ -60,6 +60,11 @@
     <strong>Current Rate:</strong> KES {{ rate_per_liter }} per liter of milk
 </div>
 
+<div class="alert alert-success mb-4">
+    <i class="fas fa-check-circle me-2"></i>
+    <strong>Available for feed deduction:</strong> KES {{ available_balance|floatformat:2 }}
+</div>
+
 <!-- Payment History -->
 <div class="card-custom">
     <div class="card-header d-flex justify-content-between align-items-center">

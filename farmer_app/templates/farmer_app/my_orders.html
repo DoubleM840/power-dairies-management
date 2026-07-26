@@ -15,6 +15,10 @@
                     <h5 class="mb-1">{{ order.feed.name }}</h5>
                     <p class="text-muted mb-0">{{ order.quantity }} {{ order.feed.unit }} &bull; KES {{ order.total_price }}</p>
                     <small class="text-muted">Ordered: {{ order.order_date|date:"M d, Y H:i" }}</small>
+                    <div class="mt-2">
+                        <span class="badge bg-light text-dark">Payment: {{ order.payment_method|default:"Pending" }}</span>
+                        <span class="badge bg-light text-dark">Source: {{ order.payment_source|default:"Not set" }}</span>
+                    </div>
                 </div>
                 
                 <div class="col-md-5">
